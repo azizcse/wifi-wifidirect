@@ -1,2 +1,2 @@
-# MeshRnd
+# Wifi connection
 
