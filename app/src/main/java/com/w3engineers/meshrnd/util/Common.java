@@ -34,6 +34,9 @@ public class Common {
 
     public static final int SCAN_REQ = 0;
     public static final int SCAN_RES = 1;
+    public static final int TEXT_MESSAGE = 2;
+    public static final int TYPE_USER_LIST = 3;
+
     public static final int UDP_SCAN_NUMBER = 2;
 
 

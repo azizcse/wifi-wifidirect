@@ -94,7 +94,7 @@ public class TcpClient implements ConnectionListener {
                             //if(!currentPingAddr.equals(myIP)) {
                             establishedConnection(currentPingAddr, reqString);
                             AppLog.v("Ping Ip address = " + currentPingAddr);
-                            Thread.sleep(100);
+                            Thread.sleep(50);
                             //}
                         }
                     }

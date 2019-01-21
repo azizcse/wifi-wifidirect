@@ -18,6 +18,7 @@ import android.content.Context;
 import com.w3engineers.meshrnd.model.UserModel;
 import com.w3engineers.meshrnd.util.AppLog;
 import com.w3engineers.meshrnd.util.Common;
+import com.w3engineers.meshrnd.util.Constants;
 import com.w3engineers.meshrnd.util.JsonParser;
 
 import java.io.ByteArrayOutputStream;
@@ -26,6 +27,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
 
 public class MessageReceiver implements Runnable {
     /**
@@ -99,19 +101,30 @@ public class MessageReceiver implements Runnable {
 
     private void handleData(String ipAddress, InputStream inputStream) {
         byte[] data = getInputStreamByteArray(inputStream);
-        AppLog.v("Message received form =" + ipAddress);
+
         String jsonString = new String(data);
+        AppLog.v("Message received form =" + jsonString);
+
         int messageType = JsonParser.getScanType(jsonString);
 
-        UserModel userModel = JsonParser.parseUserData(jsonString, ipAddress);
+        if (wifiDirectDataListener != null &&(messageType == Common.SCAN_REQ || messageType == Common.SCAN_RES)) {
 
-        if(wifiDirectDataListener != null){
+            UserModel userModel = JsonParser.parseUserData(jsonString, ipAddress);
             wifiDirectDataListener.onUserFound(userModel);
         }
 
-        if(messageType == Common.SCAN_REQ){
+        if (messageType == Common.SCAN_REQ) {
             wifiDirectDataListener.sendResponseInfo(ipAddress);
+            wifiDirectDataListener.onSendListUsers(ipAddress);
+        } else if (messageType == Common.TEXT_MESSAGE) {
+            wifiDirectDataListener.onMessageReceived(jsonString);
+
+        }else if(messageType == Common.TYPE_USER_LIST){
+            List<UserModel> userModelList = JsonParser.parseJsonArray(jsonString, ipAddress);
+            wifiDirectDataListener.onUserFound(userModelList);
+            AppLog.v("List users =" + userModelList.size());
         }
+
     }
 
     public byte[] getInputStreamByteArray(InputStream input) {

@@ -25,7 +25,25 @@ public class UserModel implements Serializable {
     private String userId = "";
     private String ip;
     private int port;
+    private boolean isGroupOwner;
 
+    private String viaIpAddress;
+
+    public boolean isGroupOwner() {
+        return isGroupOwner;
+    }
+
+    public void setGroupOwner(boolean groupOwner) {
+        isGroupOwner = groupOwner;
+    }
+
+    public String getViaIpAddress() {
+        return viaIpAddress;
+    }
+
+    public void setViaIpAddress(String viaIpAddress) {
+        this.viaIpAddress = viaIpAddress;
+    }
 
     public void setUserName(String userName) {
         this.userName = userName;

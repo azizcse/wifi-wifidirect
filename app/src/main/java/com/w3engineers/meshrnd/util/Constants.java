@@ -1,5 +1,7 @@
 package com.w3engineers.meshrnd.util;
 
+import java.security.PublicKey;
+
 /**
  * * ============================================================================
  * * Copyright (C) 2019 W3 Engineers Ltd - All Rights Reserved.
@@ -24,5 +26,9 @@ package com.w3engineers.meshrnd.util;
 public class Constants {
     public static String USER_ID = "id";
     public static String NAME = "name";
+
+    public static String KEY_STATUS = "status";
+    public static String DEVICE_NAME = "device_name";
+    public static String DEVICE_ADDRESS = "device_address";
 
 }

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+
 /*
  *  ****************************************************************************
  *  * Created by : Md. Azizul Islam on 1/14/2019 at 5:06 PM.
@@ -25,7 +26,6 @@ public class Connection extends Thread {
 
     /**
      * Instance variable
-     *
      */
     private ConnectionListener connectionListener;
     private Socket socket;
@@ -35,11 +35,11 @@ public class Connection extends Thread {
     /**
      * Constructor to init socket and strum builder
      *
-     * @param connectionListener
-     * @param socket
-     * @throws IOException
+     * @param connectionListener : listener
+     * @param socket             : socket
+     * @throws IOException : io exception
      */
-    public Connection(ConnectionListener connectionListener, Socket socket)throws IOException {
+    public Connection(ConnectionListener connectionListener, Socket socket) throws IOException {
         this.connectionListener = connectionListener;
         this.socket = socket;
         try {
@@ -53,17 +53,17 @@ public class Connection extends Thread {
     }
 
     @Override
-    public void run(){
+    public void run() {
         try {
             String msg = in.readUTF();
             String ip = socket.getInetAddress().toString().substring(1);
-            connectionListener.read(msg,ip);
+            connectionListener.read(msg, ip);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void write(String msg){
+    public void write(String msg) {
         try {
             out.writeUTF(msg);
             out.flush();

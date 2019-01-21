@@ -22,10 +22,16 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.HandlerThread;
+import android.widget.Toast;
 
+import com.w3engineers.meshrnd.model.Message;
 import com.w3engineers.meshrnd.model.UserModel;
+import com.w3engineers.meshrnd.ui.chat.MessageListener;
 import com.w3engineers.meshrnd.util.AppLog;
+import com.w3engineers.meshrnd.util.Constants;
+import com.w3engineers.meshrnd.util.HandlerUtil;
 import com.w3engineers.meshrnd.util.JsonParser;
+import com.w3engineers.meshrnd.util.SharedPref;
 import com.w3engineers.meshrnd.wifi.WiFiScanCallBack;
 
 import java.util.ArrayList;
@@ -48,7 +54,11 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
 
     private List<UserModel> discoveredUserList;
 
+    private List<UserModel> realUsersDataList;
+
     private static WiFiScanCallBack wiFiScanCallBack;
+
+    private boolean isGroupOwner = false;
 
     /**
      * <p>private constructor
@@ -60,6 +70,7 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
         handlerThread.start();
         this.context = context;
         discoveredUserList = new ArrayList<>();
+        realUsersDataList = new ArrayList<>();
         wifiP2pManager = (WifiP2pManager) context.getSystemService(context.WIFI_P2P_SERVICE);
         wifip2pChannel = wifiP2pManager.initialize(context, handlerThread.getLooper(), null);
 
@@ -80,30 +91,50 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
         }
     }
 
-    public static WifiDirectManager on(Context context, WiFiScanCallBack callBack) {
+    public static WifiDirectManager on(Context context) {
         if (wifiDirectManager == null) {
             wifiDirectManager = new WifiDirectManager(context);
         }
-        wiFiScanCallBack = callBack;
+
         return wifiDirectManager;
+    }
+
+    public void initListener(WiFiScanCallBack callBack) {
+        this.wiFiScanCallBack = callBack;
+    }
+
+    private MessageListener messageListener;
+
+    public void initMessageListener(MessageListener listener) {
+        this.messageListener = listener;
     }
 
     boolean isConnectionInfoSent = false;
 
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
-        AppLog.v("onConnectionInfoAvailable() called");
-        if (wifiP2pInfo.groupFormed && !wifiP2pInfo.isGroupOwner && !isConnectionInfoSent) {
+        //AppLog.v("onConnectionInfoAvailable() called");
+
+
+        SharedPref.write(Constants.KEY_STATUS, wifiP2pInfo.isGroupOwner);
+
+        if (wiFiScanCallBack != null) {
+            wiFiScanCallBack.updateDeviceAddress();
+        }
+
+        if (wifiP2pInfo.groupFormed && !wifiP2pInfo.isGroupOwner) {
             String sendAbleString = JsonParser.getReqString();
             String groupOwnerAddress = wifiP2pInfo.groupOwnerAddress.getHostAddress();
             messageSender.sendMessage(sendAbleString, groupOwnerAddress);
             isConnectionInfoSent = true;
+        } else {
+            AppLog.v("Group woner =" + wifiP2pInfo.toString());
         }
     }
 
     @Override
     public void onPeersAvailable(WifiP2pDeviceList peerList) {
-        AppLog.v("onPeersAvailable() called");
+        //AppLog.v("onPeersAvailable() called =" + peerList.getDeviceList().size());
         wiFiScanCallBack.onScanFinish();
 
         List<WifiP2pDevice> devices = (new ArrayList<>());
@@ -114,9 +145,12 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
             deviceDTO.setUserName(device.deviceName);
             deviceDTO.setDeviceName(new String());
             deviceDTO.setOsVersion(new String());
+            deviceDTO.setGroupOwner(device.isGroupOwner());
             deviceDTO.setPort(-1);
             discoveredUserList.add(deviceDTO);
             wiFiScanCallBack.onUserFound(deviceDTO);
+
+            AppLog.v("Group_check","Peer details =" + device.isGroupOwner());
         }
 
     }
@@ -124,6 +158,10 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
 
     public List<UserModel> getUserList() {
         return new ArrayList<>(discoveredUserList);
+    }
+
+    private List<UserModel> getRealUserList() {
+        return new ArrayList<>(realUsersDataList);
     }
 
 
@@ -141,12 +179,12 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
             wifiP2pManager.discoverPeers(wifip2pChannel, new WifiP2pManager.ActionListener() {
                 @Override
                 public void onSuccess() {
-                    AppLog.v("User discovery started");
+                    AppLog.v("WiFi direct discovery started");
                 }
 
                 @Override
                 public void onFailure(int reasonCode) {
-                    AppLog.v("User discovery failed=" + reasonCode);
+                    AppLog.v("WiFi direct discovery failed=" + reasonCode);
                 }
             });
         }
@@ -179,7 +217,7 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
         WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = model.getIp();
         config.wps.setup = WpsInfo.PBC;
-        config.groupOwnerIntent = 10;
+        config.groupOwnerIntent = 0;
         wifiP2pManager.connect(wifip2pChannel, config, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -188,22 +226,94 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
 
             @Override
             public void onFailure(int reasonCode) {
-                AppLog.v("createConnection onFailure()");
-                // NotificationToast.showToast(LocalDashWiFiDirect.this, "Connection failed. try" +" again: reason: " + reasonCode);
+                AppLog.v("createConnection onFailure() ="+reasonCode);
             }
         });
     }
 
     @Override
     public void onUserFound(UserModel userModel) {
+        realUsersDataList.add(userModel);
         if (userModel != null) {
             wiFiScanCallBack.onUserFound(userModel);
         }
     }
 
     @Override
+    public void onUserFound(List<UserModel> userModels) {
+        if (wiFiScanCallBack != null && userModels != null) {
+            String myAddress = SharedPref.read(Constants.USER_ID);
+
+            for (int i = 0; i < userModels.size(); i++) {
+                if (myAddress.equals(userModels.get(i).getUserId())) {
+                    userModels.remove(i);
+                    break;
+                }
+            }
+            wiFiScanCallBack.onUserFound(userModels);
+        }
+    }
+
+    @Override
     public void sendResponseInfo(String ipAddress) {
+
         String responseData = JsonParser.getResString();
         messageSender.sendMessage(responseData, ipAddress);
+
     }
+
+    public void sendTextMessage(String ip, Message inputValue) {
+        AppLog.v("Send response info ---- ");
+        String sendValue = JsonParser.buildMessage(inputValue);
+        messageSender.sendMessage(sendValue, ip);
+    }
+
+    @Override
+    public void onMessageReceived(String msg) {
+        final Message message = JsonParser.parseMessage(msg);
+        if (messageListener != null) {
+            messageListener.onMessageReceived(message);
+        } else {
+            HandlerUtil.postForeground(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(context, message.message, Toast.LENGTH_LONG).show();
+                }
+            });
+
+        }
+    }
+
+    @Override
+    public void updateDeviceInfo(WifiP2pDevice device) {
+        if (wiFiScanCallBack != null) {
+            SharedPref.write(Constants.DEVICE_NAME, device.deviceName);
+            SharedPref.write(Constants.DEVICE_ADDRESS, device.deviceAddress);
+            wiFiScanCallBack.updateDeviceAddress();
+            //AppLog.v("Wifi-direct ip="+device.deviceAddress);
+        }
+    }
+
+    @Override
+    public void onSendListUsers(final String toIpAddress) {
+
+
+        List<UserModel> userModelList = getRealUserList();
+        AppLog.v("List user send method called =" + userModelList.size());
+        if (userModelList.size() == 0) return;
+
+        String userListString = JsonParser.buildUserListJson(userModelList);
+        for (UserModel item : userModelList) {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            messageSender.sendMessage(userListString, item.getIp());
+        }
+
+
+    }
+
+
 }

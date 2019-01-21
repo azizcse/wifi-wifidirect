@@ -13,9 +13,15 @@ package com.w3engineers.meshrnd.wifi;
  *  ****************************************************************************
  */
 
+import android.net.wifi.p2p.WifiP2pDevice;
+
 import com.w3engineers.meshrnd.model.UserModel;
+
+import java.util.List;
 
 public interface WiFiScanCallBack {
     void onScanFinish();
     void onUserFound(UserModel userModel);
+    void onUserFound(List<UserModel> userModels);
+    void updateDeviceAddress();
 }
