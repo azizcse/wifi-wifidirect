@@ -26,6 +26,7 @@ public class WiFiP2PInstance implements WifiP2pManager.ConnectionInfoListener {
     private ServiceDisconnectedListener serviceDisconnectedListener;
 
     private WiFiP2PInstance() {
+
     }
 
     private WiFiP2PInstance(Context context) {
@@ -89,8 +90,11 @@ public class WiFiP2PInstance implements WifiP2pManager.ConnectionInfoListener {
 
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo info) {
+        MeshLog.v("Connection info available");
         if (peerConnectedListener != null) {
             peerConnectedListener.onPeerConnected(info);
+        }else {
+
         }
     }
 

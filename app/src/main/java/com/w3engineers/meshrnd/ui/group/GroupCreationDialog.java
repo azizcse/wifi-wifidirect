@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -37,7 +38,11 @@ public class GroupCreationDialog extends DialogFragment {
             public void onClick(DialogInterface dialog, int which) {
                 String groupName = tfGroupName.getText().toString();
                 if (listener != null) {
-                    listener.onAcceptButtonListener(groupName);
+                    if(TextUtils.isEmpty(groupName)){
+                        listener.onAcceptButtonListener("meshtest");
+                    }else {
+                        listener.onAcceptButtonListener(groupName);
+                    }
                 }
             }
         });

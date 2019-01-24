@@ -2,7 +2,6 @@ package com.w3engineers.meshrnd.ui.main;
 
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
-import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -11,15 +10,13 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Toast;
 
 import com.w3engineers.meshrnd.R;
 import com.w3engineers.meshrnd.databinding.ActivityMainBinding;
 import com.w3engineers.meshrnd.model.UserModel;
 import com.w3engineers.meshrnd.ui.base.ItemClickListener;
 import com.w3engineers.meshrnd.ui.chat.ChatActivity;
-import com.w3engineers.meshrnd.ui.chat.ChatAdapter;
-import com.w3engineers.meshrnd.ui.group.GroupActivity;
+import com.w3engineers.meshrnd.ui.group.BottomNavActivity;
 import com.w3engineers.meshrnd.util.AppLog;
 import com.w3engineers.meshrnd.util.Constants;
 import com.w3engineers.meshrnd.util.SharedPref;
@@ -27,7 +24,6 @@ import com.w3engineers.meshrnd.wifi.WiFiScanCallBack;
 import com.w3engineers.meshrnd.wifi.WifiScanManager;
 import com.w3engineers.meshrnd.wifidirect.WifiDirectManager;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, WiFiScanCallBack, ItemClickListener<UserModel> {
@@ -82,7 +78,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.broadcast_user:
-               startActivity(new Intent(this, GroupActivity.class));
+               startActivity(new Intent(this, BottomNavActivity.class));
             default:
                 return super.onOptionsItemSelected(item);
         }

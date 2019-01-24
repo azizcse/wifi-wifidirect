@@ -13,22 +13,18 @@ package com.w3engineers.meshrnd;
  *  ****************************************************************************
  */
 
-import android.app.Application;
-import android.content.Context;
 
+import com.w3.meshlib.MeshApp;
 import com.w3engineers.meshrnd.util.SharedPref;
 
-public class App extends Application {
-    private static Context context;
+public class App extends MeshApp {
 
     @Override
     public void onCreate() {
         super.onCreate();
-        context = getApplicationContext();
+
         SharedPref.on(this);
     }
 
-    public static Context getContext(){
-        return context;
-    }
+
 }

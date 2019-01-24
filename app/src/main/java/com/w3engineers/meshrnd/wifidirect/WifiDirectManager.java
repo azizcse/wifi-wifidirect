@@ -87,7 +87,7 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
 
     public void stopMsgReceiver() {
         if (messageReceiver != null) {
-            messageReceiver.startReceiver();
+            messageReceiver.stopReceiver();
         }
     }
 

@@ -17,6 +17,8 @@ import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.util.Log;
 
+import com.w3.meshlib.model.User;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -168,6 +170,13 @@ public class Common {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static User getMyInfo() {
+        User user = new User();
+        user.setUserName(SharedPref.read(Constants.NAME));
+        user.setUserId(SharedPref.read(Constants.USER_ID));
+        return user;
     }
 
 }

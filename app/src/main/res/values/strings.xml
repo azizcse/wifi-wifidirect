@@ -19,4 +19,8 @@
     <string name="device_connected">%s device connected to the group</string>
     <string name="device_disconnected">%s device disconnected from the group</string>
 
+    <string name="network">Network</string>
+    <string name="people">Nearby</string>
+    <string name="message">Message</string>
+
 </resources>

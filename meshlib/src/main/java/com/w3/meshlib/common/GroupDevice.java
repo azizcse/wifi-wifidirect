@@ -5,10 +5,11 @@ import android.net.wifi.p2p.WifiP2pDevice;
 
 
 public class GroupDevice {
-
+    private String groupName;
     private String deviceName;
     private String deviceMac;
     private String deviceServerSocketIP;
+
     private int deviceServerSocketPort;
 
     private String customName;
@@ -20,6 +21,14 @@ public class GroupDevice {
     public GroupDevice(WifiP2pDevice device) {
         this.deviceName = device.deviceName;
         this.deviceMac = device.deviceAddress;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
     }
 
     public String getDeviceName() {
