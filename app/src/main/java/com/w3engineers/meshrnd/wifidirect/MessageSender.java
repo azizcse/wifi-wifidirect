@@ -51,7 +51,7 @@ public class MessageSender {
      * @param ipAddress : ip address
      */
     public void sendMessage(final String message, final String ipAddress) {
-        singleThreadExecutor.execute(new Runnable() {
+        new Thread(new Runnable() {
             @Override
             public void run() {
                 Socket socket = null;
@@ -69,8 +69,10 @@ public class MessageSender {
                     AppLog.d("Close sender socket");
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
+                    AppLog.d("sender UnknownHostException");
                 } catch (IOException e) {
                     e.printStackTrace();
+                    AppLog.d("sender IOException");
                 } finally {
                     if (socket != null && socket.isConnected()) {
                         try {
@@ -81,6 +83,6 @@ public class MessageSender {
                     }
                 }
             }
-        });
+        }).start();
     }
 }

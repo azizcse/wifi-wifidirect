@@ -65,18 +65,18 @@ public class TcpServer implements ConnectionListener {
     private Thread listenThread = new Thread() {
         @Override
         public void run() {
-            while (runner) {
-                try {
-                    AppLog.v("TCP server running");
-                    Socket socket = serverSocket.accept();
-                    Connection connection = new Connection(TcpServer.this, socket);
-                    connection.start();
-                    connection.write(myInfo);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+
+            try {
+                AppLog.v("TCP server running");
+                Socket socket = serverSocket.accept();
+                Connection connection = new Connection(TcpServer.this, socket);
+                connection.start();
+                connection.write(myInfo);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
+
     };
 
 

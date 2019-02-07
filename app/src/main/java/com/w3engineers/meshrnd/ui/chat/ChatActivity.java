@@ -9,11 +9,16 @@ import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
 
+import com.w3.meshlib.bluetooth.BluetoothManager;
+import com.w3.meshlib.common.listeners.MeshDataListener;
+import com.w3.meshlib.service.WiFiDirectService;
 import com.w3engineers.meshrnd.R;
 import com.w3engineers.meshrnd.databinding.ActivityChatBinding;
 import com.w3engineers.meshrnd.model.Message;
-import com.w3engineers.meshrnd.model.UserModel;
-import com.w3engineers.meshrnd.wifidirect.WifiDirectManager;
+import com.w3engineers.meshrnd.util.Common;
+import com.w3engineers.meshrnd.util.Constants;
+import com.w3engineers.meshrnd.util.JsonParser;
+import com.w3.meshlib.data.SharedPref;
 
 import java.util.UUID;
 
@@ -39,36 +44,46 @@ import java.util.UUID;
  * * --> <Second Reviewer> on [15-Jan-2019 at 1:01 PM].
  * * ============================================================================
  **/
-public class ChatActivity extends AppCompatActivity implements View.OnClickListener, MessageListener {
+public class ChatActivity extends AppCompatActivity implements View.OnClickListener, MeshDataListener {
 
     private ActivityChatBinding mBinding;
-    private UserModel userModel;
+    //private UserModel userModel;
 
     private ChatAdapter chatAdapter;
-    private WifiDirectManager wifiDirectManager;
+    private WiFiDirectService wifiDirectManager;
+    private BluetoothManager bluetoothManager;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_chat);
-        userModel = (UserModel) getIntent().getSerializableExtra(UserModel.class.getName());
-        getSupportActionBar().setTitle(userModel.getUserName());
+        //userModel = (UserModel) getIntent().getSerializableExtra(UserModel.class.getName());
+        //getSupportActionBar().setTitle(userModel.getUserName());
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         mBinding.imageButtonSend.setOnClickListener(this);
         chatAdapter = new ChatAdapter();
 
-        wifiDirectManager = WifiDirectManager.on(getApplicationContext());
+        wifiDirectManager = WiFiDirectService.getInstance(getApplicationContext(), Common.getMyInfo());
         wifiDirectManager.initMessageListener(this);
 
         mBinding.recyclerViewMessage.setLayoutManager(new LinearLayoutManager(this));
         mBinding.recyclerViewMessage.setAdapter(chatAdapter);
+        bluetoothManager = BluetoothManager.on(getApplicationContext(), Common.getMyInfo());
+        bluetoothManager.initMessageReceiver(this);
+        setUserInfo();
+    }
+
+    private void setUserInfo() {
+        getSupportActionBar().setTitle((Common.currentChatUser).getUserName());
+
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         wifiDirectManager.initMessageListener(null);
+
     }
 
     @Override
@@ -76,7 +91,7 @@ public class ChatActivity extends AppCompatActivity implements View.OnClickListe
         String inputValue = mBinding.edittextMessageInput.getText().toString().trim();
         if (TextUtils.isEmpty(inputValue)) return;
         Message message = buildMessage(inputValue);
-        wifiDirectManager.sendTextMessage(userModel.getIp(), message);
+        sendMessage(message);
         mBinding.edittextMessageInput.setText("");
         chatAdapter.addItem(message);
         scrollSmoothly();
@@ -86,6 +101,8 @@ public class ChatActivity extends AppCompatActivity implements View.OnClickListe
         Message message = new Message();
         message.message = msg;
         message.messageId = UUID.randomUUID().toString();
+        message.senderId = SharedPref.read(Constants.USER_ID);
+        message.receiverId = Common.currentChatUser.getUserId();
         message.incoming = false;
         return message;
     }
@@ -100,19 +117,30 @@ public class ChatActivity extends AppCompatActivity implements View.OnClickListe
         return super.onOptionsItemSelected(item);
     }
 
+    private void scrollSmoothly() {
+        mBinding.recyclerViewMessage.smoothScrollToPosition(chatAdapter.getItemCount() - 1);
+    }
+
+    private void sendMessage(Message message) {
+        String sendValue = JsonParser.buildMessage(message);
+        if (Common.currentChatUser.getBleLink() != null) {
+            bluetoothManager.sendMessage(sendValue, (Common.currentChatUser).getBleLink());
+        } else {
+            wifiDirectManager.sendP2pMessage(sendValue,(Common.currentChatUser).getIpAddress());
+        }
+
+    }
+
+
     @Override
-    public void onMessageReceived(final Message message) {
+    public void onDataReceived(final String msg) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                Message message = JsonParser.parseMessage(msg);
                 chatAdapter.addItem(message);
                 scrollSmoothly();
-
             }
         });
-    }
-
-    private void scrollSmoothly() {
-        mBinding.recyclerViewMessage.smoothScrollToPosition(chatAdapter.getItemCount() - 1);
     }
 }

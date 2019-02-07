@@ -2,6 +2,7 @@ package com.w3.meshlib.client;
 
 
 import android.content.Context;
+import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pInfo;
@@ -63,9 +64,9 @@ import java.util.Map;
  * {@code wiFiP2PClient = WiFiDirectClient.getInstance(getApplicationContext());
  * wiFiP2PClient.discoverServices(5000L, new ServiceDiscoveredListener() {
  *
- *  public void onNewServiceDeviceDiscovered(GroupServiceDevice serviceDevice) {
+ *  public void onNewServiceDeviceDiscovered(GroupServiceDevice groupDevice) {
  *      Log.i(TAG, "New service found:");
- *      Log.i(TAG, "\tName: " + serviceDevice.getDeviceName());
+ *      Log.i(TAG, "\tName: " + groupDevice.getDeviceName());
  *  }
  *
  *  public void onFinishServiceDeviceDiscovered(List<GroupServiceDevice> serviceDevices) {
@@ -101,7 +102,7 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
     private ServerSocket serverSocket;
 
     private WiFiP2PInstance wiFiP2PInstance;
-    private GroupDevice serviceDevice;
+    private GroupDevice groupDevice;
     private Map<String, GroupDevice> clientsConnected;
     private Boolean isRegistered = false;
 
@@ -118,6 +119,7 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
      * @param context The application context.
      * @return The actual WiFiDirectClient instance.
      */
+
     public static WiFiDirectClient getInstance(Context context) {
         if (instance == null && context != null) {
             instance = new WiFiDirectClient(context);
@@ -202,11 +204,13 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
      *                                 the desired service.
      */
     public void connectToService(final GroupServiceDevice serviceDevice, ServiceConnectedListener serviceConnectedListener) {
-        this.serviceDevice = serviceDevice;
+        this.groupDevice = serviceDevice;
         this.serviceConnectedListener = serviceConnectedListener;
 
         WifiP2pConfig wifiP2pConfig = new WifiP2pConfig();
         wifiP2pConfig.deviceAddress = serviceDevice.getDeviceMac();
+        wifiP2pConfig.groupOwnerIntent = 0;
+        wifiP2pConfig.wps.setup = WpsInfo.PBC;
 
         wiFiP2PInstance.getWifiP2pManager().connect(wiFiP2PInstance.getChannel(), wifiP2pConfig, new WifiP2pManager.ActionListener() {
             @Override
@@ -271,8 +275,8 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
             Log.e(TAG, "I shouldn't be the group owner, I'am a client!");
         }
 
-        if (wifiP2pInfo.groupFormed && serviceDevice != null && !isRegistered) {
-            serviceDevice.setDeviceServerSocketIP(wifiP2pInfo.groupOwnerAddress.getHostAddress());
+        if (wifiP2pInfo.groupFormed && groupDevice != null && !isRegistered) {
+            groupDevice.setIpAddress(wifiP2pInfo.groupOwnerAddress.getHostAddress());
             Log.i(TAG, "The Server Address is: " + wifiP2pInfo.groupOwnerAddress.getHostAddress());
 
             // We are connected to the server. Create a server socket to receive messages
@@ -286,7 +290,7 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
                     // We send the negotiation message to the server
                     sendServerRegistrationMessage();
                     if (serviceConnectedListener != null) {
-                        serviceConnectedListener.onServiceConnected(serviceDevice);
+                        serviceConnectedListener.onServiceConnected(groupDevice);
                     }
 
                     isRegistered = true;
@@ -311,7 +315,7 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
      * @param message The message to be sent.
      */
     public void sendMessageToServer(MessageWrapper message) {
-        sendMessage(serviceDevice, message);
+        sendMessage(groupDevice, message);
     }
 
     /**
@@ -342,12 +346,12 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
         new AsyncTask<MessageWrapper, Void, Void>() {
             @Override
             protected Void doInBackground(MessageWrapper... params) {
-                if (device != null && device.getDeviceServerSocketIP() != null) {
+                if (device != null && device.getIpAddress() != null) {
                     try {
                         Socket socket = new Socket();
                         socket.bind(null);
 
-                        InetSocketAddress hostAddres = new InetSocketAddress(device.getDeviceServerSocketIP(), device.getDeviceServerSocketPort());
+                        InetSocketAddress hostAddres = new InetSocketAddress(device.getIpAddress(), device.getDeviceServerSocketPort());
                         socket.connect(hostAddres, 2000);
 
                         Gson gson = new Gson();
@@ -435,11 +439,10 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
 
                     if (!serviceDevices.contains(serviceDevice)) {
                         Log.i(TAG, "Found a new Wroup service: ");
-                        Log.i(TAG, "\tDomain Name: " + fullDomainName);
-                        Log.i(TAG, "\tDevice Name: " + device.deviceName);
-                        Log.i(TAG, "\tDevice Address: " + device.deviceAddress);
-                        Log.i(TAG, "\tServer socket Port: " + serviceDevice.getDeviceServerSocketPort());
-
+                        Log.i(TAG, "\t TxtRecord Domain Name: " + fullDomainName);
+                        Log.i(TAG, "\tTxtRecord Device Name: " + device.deviceName);
+                        Log.i(TAG, "\tTxtRecord Device Address: " + device.deviceAddress);
+                        Log.i(TAG, "\tTxtRecord Server socket Port: " + serviceDevice.getDeviceServerSocketPort());
                         serviceDevices.add(serviceDevice);
                         serviceDiscoveredListener.onNewServiceDeviceDiscovered(serviceDevice);
                     }
@@ -517,7 +520,7 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
             Log.d(TAG, "New client connected to the group:");
             Log.d(TAG, "\tDevice name: " + device.getDeviceName());
             Log.d(TAG, "\tDecive mac: " + device.getDeviceMac());
-            Log.d(TAG, "\tDevice IP: " + device.getDeviceServerSocketIP());
+            Log.d(TAG, "\tDevice IP: " + device.getIpAddress());
             Log.d(TAG, "\tDevice ServerSocket port: " + device.getDeviceServerSocketPort());
         } else if (MessageWrapper.MessageType.DISCONNECTION_MESSAGE.equals(messageWrapper.getMessageType())) {
             Gson gson = new Gson();
@@ -534,7 +537,7 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
             Log.d(TAG, "Client disconnected from the group:");
             Log.d(TAG, "\tDevice name: " + device.getDeviceName());
             Log.d(TAG, "\tDecive mac: " + device.getDeviceMac());
-            Log.d(TAG, "\tDevice IP: " + device.getDeviceServerSocketIP());
+            Log.d(TAG, "\tDevice IP: " + device.getIpAddress());
             Log.d(TAG, "\tDevice ServerSocket port: " + device.getDeviceServerSocketPort());
         } else if (MessageWrapper.MessageType.REGISTERED_DEVICES.equals(messageWrapper.getMessageType())) {
             Gson gson = new Gson();
@@ -548,7 +551,7 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
                 Log.d(TAG, "Client already connected to the group:");
                 Log.d(TAG, "\tDevice name: " + device.getDeviceName());
                 Log.d(TAG, "\tDecive mac: " + device.getDeviceMac());
-                Log.d(TAG, "\tDevice IP: " + device.getDeviceServerSocketIP());
+                Log.d(TAG, "\tDevice IP: " + device.getIpAddress());
                 Log.d(TAG, "\tDevice ServerSocket port: " + device.getDeviceServerSocketPort());
             }
         } else {

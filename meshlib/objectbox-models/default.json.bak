@@ -1,0 +1,82 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:4961288467207983890",
+      "lastPropertyId": "8:2184768886276158276",
+      "name": "User",
+      "properties": [
+        {
+          "id": "1:4491884666797507356",
+          "name": "id"
+        },
+        {
+          "id": "2:5917153173625017726",
+          "name": "userName"
+        },
+        {
+          "id": "3:6054319484573570227",
+          "name": "userId"
+        },
+        {
+          "id": "4:3045040312682159510",
+          "name": "groupName"
+        },
+        {
+          "id": "5:297681944575493671",
+          "name": "deviceName"
+        },
+        {
+          "id": "6:6409350677955250896",
+          "name": "deviceMac"
+        },
+        {
+          "id": "7:79784271486625423",
+          "name": "ipAddress"
+        },
+        {
+          "id": "8:2184768886276158276",
+          "name": "bleUser"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "2:8310871692145407929",
+      "lastPropertyId": "4:201120035443910050",
+      "name": "Routing",
+      "properties": [
+        {
+          "id": "1:6312189934579214037",
+          "name": "id"
+        },
+        {
+          "id": "2:9180366927765295119",
+          "name": "userId"
+        },
+        {
+          "id": "3:4653574540874480959",
+          "name": "medium"
+        },
+        {
+          "id": "4:201120035443910050",
+          "name": "isBleUser"
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "lastEntityId": "2:8310871692145407929",
+  "lastIndexId": "0:0",
+  "lastRelationId": "0:0",
+  "lastSequenceId": "0:0",
+  "modelVersion": 4,
+  "modelVersionParserMinimum": 4,
+  "retiredEntityUids": [],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [],
+  "retiredRelationUids": [],
+  "version": 1
+}

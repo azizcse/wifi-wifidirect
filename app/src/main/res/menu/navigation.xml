@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/navigation_network"
+        android:icon="@drawable/ic_cast_connected"
+        android:title="@string/network" />
+
+    <item
+        android:id="@+id/navigation_nearby"
+        android:icon="@drawable/ic_person_account"
+        android:title="@string/people" />
+
+    <item
+        android:id="@+id/navigation_message"
+        android:icon="@drawable/ic_message"
+        android:title="@string/message" />
+
+</menu>

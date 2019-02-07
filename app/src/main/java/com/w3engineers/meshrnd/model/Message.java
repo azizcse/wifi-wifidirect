@@ -19,9 +19,10 @@ public class Message {
 
     public long id = 0;
     public String messageId;
-    public String friendsId;
     public String message;
     public long time;
     public boolean incoming;
+    public String senderId;
+    public String receiverId;
 
 }

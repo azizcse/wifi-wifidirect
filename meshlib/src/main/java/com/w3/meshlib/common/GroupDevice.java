@@ -2,13 +2,17 @@ package com.w3.meshlib.common;
 
 
 import android.net.wifi.p2p.WifiP2pDevice;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 
-public class GroupDevice {
+public class GroupDevice implements Parcelable {
 
+    private String groupName;
     private String deviceName;
     private String deviceMac;
-    private String deviceServerSocketIP;
+    private String ipAddress;
+
     private int deviceServerSocketPort;
 
     private String customName;
@@ -20,6 +24,14 @@ public class GroupDevice {
     public GroupDevice(WifiP2pDevice device) {
         this.deviceName = device.deviceName;
         this.deviceMac = device.deviceAddress;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
     }
 
     public String getDeviceName() {
@@ -38,12 +50,12 @@ public class GroupDevice {
         this.deviceMac = deviceMac;
     }
 
-    public String getDeviceServerSocketIP() {
-        return deviceServerSocketIP;
+    public String getIpAddress() {
+        return ipAddress;
     }
 
-    public void setDeviceServerSocketIP(String deviceServerSocketIP) {
-        this.deviceServerSocketIP = deviceServerSocketIP;
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
     }
 
     public int getDeviceServerSocketPort() {
@@ -64,7 +76,7 @@ public class GroupDevice {
 
     @Override
     public String toString() {
-        return new StringBuilder().append("GroupDevice[deviceName=").append(deviceName).append("][deviceMac=").append(deviceMac).append("][deviceServerSocketIP=").append(deviceServerSocketIP).append("][deviceServerSocketPort=").append(deviceServerSocketPort).append("]").toString();
+        return new StringBuilder().append("GroupDevice[deviceName=").append(deviceName).append("][deviceMac=").append(deviceMac).append("][ipAddress=").append(ipAddress).append("][deviceServerSocketPort=").append(deviceServerSocketPort).append("]").toString();
     }
 
     @Override
@@ -86,4 +98,27 @@ public class GroupDevice {
         return result;
     }
 
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(deviceName);
+        dest.writeString(deviceMac);
+        dest.writeString(deviceName);
+    }
+
+    public static Creator<GroupDevice> CREATOR = new Creator<GroupDevice>() {
+        @Override
+        public GroupDevice createFromParcel(Parcel source) {
+            return null;
+        }
+
+        @Override
+        public GroupDevice[] newArray(int size) {
+            return new GroupDevice[0];
+        }
+    };
 }

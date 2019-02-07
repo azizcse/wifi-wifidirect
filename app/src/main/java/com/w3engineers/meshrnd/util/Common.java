@@ -15,7 +15,9 @@ package com.w3engineers.meshrnd.util;
 
 import android.content.Context;
 import android.net.wifi.WifiManager;
-import android.util.Log;
+
+import com.w3.meshlib.data.SharedPref;
+import com.w3.meshlib.model.User;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -34,7 +36,9 @@ public class Common {
 
     public static final int SCAN_REQ = 0;
     public static final int SCAN_RES = 1;
-    public static final int TEXT_MESSAGE = 2;
+
+    public static final int TEXT_MESSAGE = 100;
+
     public static final int TYPE_USER_LIST = 3;
 
     public static final int UDP_SCAN_NUMBER = 2;
@@ -169,5 +173,15 @@ public class Common {
         }
         return null;
     }
+
+    public static User getMyInfo() {
+        User user = new User();
+        user.setUserName(SharedPref.read(Constants.NAME));
+        user.setUserId(SharedPref.read(Constants.USER_ID));
+        return user;
+    }
+
+
+    public static User currentChatUser = null;
 
 }

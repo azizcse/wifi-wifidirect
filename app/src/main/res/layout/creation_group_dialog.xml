@@ -15,6 +15,7 @@
     <EditText
         android:id="@+id/editTextGroupName"
         android:layout_width="match_parent"
+        android:hint="Default:  meshtest"
         android:layout_height="wrap_content"
         android:inputType="textCapSentences"/>
 

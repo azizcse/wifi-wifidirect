@@ -31,7 +31,7 @@ import com.w3engineers.meshrnd.util.AppLog;
 import com.w3engineers.meshrnd.util.Constants;
 import com.w3engineers.meshrnd.util.HandlerUtil;
 import com.w3engineers.meshrnd.util.JsonParser;
-import com.w3engineers.meshrnd.util.SharedPref;
+import com.w3.meshlib.data.SharedPref;
 import com.w3engineers.meshrnd.wifi.WiFiScanCallBack;
 
 import java.util.ArrayList;
@@ -87,7 +87,7 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
 
     public void stopMsgReceiver() {
         if (messageReceiver != null) {
-            messageReceiver.startReceiver();
+            messageReceiver.stopReceiver();
         }
     }
 
@@ -135,7 +135,9 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
     @Override
     public void onPeersAvailable(WifiP2pDeviceList peerList) {
         //AppLog.v("onPeersAvailable() called =" + peerList.getDeviceList().size());
-        wiFiScanCallBack.onScanFinish();
+        if(wiFiScanCallBack !=null) {
+            wiFiScanCallBack.onScanFinish();
+        }
 
         List<WifiP2pDevice> devices = (new ArrayList<>());
         devices.addAll(peerList.getDeviceList());
@@ -262,12 +264,6 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
 
     }
 
-    public void sendTextMessage(String ip, Message inputValue) {
-        AppLog.v("Send response info ---- ");
-        String sendValue = JsonParser.buildMessage(inputValue);
-        messageSender.sendMessage(sendValue, ip);
-    }
-
     @Override
     public void onMessageReceived(String msg) {
         final Message message = JsonParser.parseMessage(msg);
@@ -297,7 +293,6 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
     @Override
     public void onSendListUsers(final String toIpAddress) {
 
-
         List<UserModel> userModelList = getRealUserList();
         AppLog.v("List user send method called =" + userModelList.size());
         if (userModelList.size() == 0) return;
@@ -311,9 +306,6 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
             }
             messageSender.sendMessage(userListString, item.getIp());
         }
-
-
     }
-
 
 }

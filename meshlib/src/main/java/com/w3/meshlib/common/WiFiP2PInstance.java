@@ -26,13 +26,21 @@ public class WiFiP2PInstance implements WifiP2pManager.ConnectionInfoListener {
     private ServiceDisconnectedListener serviceDisconnectedListener;
 
     private WiFiP2PInstance() {
+
     }
 
-    private WiFiP2PInstance(Context context) {
+    private WiFiP2PInstance(final Context context) {
         this();
 
         wifiP2pManager = (WifiP2pManager) context.getSystemService(Context.WIFI_P2P_SERVICE);
-        channel = wifiP2pManager.initialize(context, context.getMainLooper(), null);
+
+        channel = wifiP2pManager.initialize(context, context.getMainLooper(), new WifiP2pManager.ChannelListener() {
+            @Override
+            public void onChannelDisconnected() {
+                Log.d(TAG, "Attempting to reinitialize channel.");
+                channel = wifiP2pManager.initialize(context, context.getMainLooper(), this);
+            }
+        });
         broadcastReceiver = new WiFiDirectBroadcastReceiver(this);
     }
 
@@ -89,8 +97,11 @@ public class WiFiP2PInstance implements WifiP2pManager.ConnectionInfoListener {
 
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo info) {
+        MeshLog.v("Connection info available");
         if (peerConnectedListener != null) {
             peerConnectedListener.onPeerConnected(info);
+        }else {
+
         }
     }
 

@@ -13,6 +13,8 @@ package com.w3engineers.meshrnd.util;
  *  ****************************************************************************
  */
 
+import com.w3.meshlib.common.Constant;
+import com.w3.meshlib.data.SharedPref;
 import com.w3engineers.meshrnd.model.Message;
 import com.w3engineers.meshrnd.model.UserModel;
 
@@ -31,6 +33,9 @@ public class JsonParser {
     private static String KEY_TEXT_MSG = "m";
     private static String KEY_MSG_ID = "id";
     private static String KEY_USER_ARRAY = "ua";
+
+    private static String KEY_RECEIVER_ID = "rid";
+    private static String KEY_SENDER_ID = "sid";
 
     public static String MSG_OWNER_IP = "moip";
     public static String MSG_VIA_IP = "mvip";
@@ -98,8 +103,9 @@ public class JsonParser {
             jo = new JSONObject();
             jo.put(KEY_TEXT_MSG, value.message);
             jo.put(KEY_MSG_ID, value.messageId);
-            jo.put(MESSAGE_TYPE, Common.TEXT_MESSAGE);
-
+            jo.put(MESSAGE_TYPE, Constant.TYPE_TEXT_MESSAGE);
+            jo.put(KEY_RECEIVER_ID, value.receiverId);
+            jo.put(KEY_SENDER_ID, value.senderId);
             return jo.toString();
         } catch (JSONException e) {
         }
@@ -113,6 +119,8 @@ public class JsonParser {
             message.message = jo.getString(KEY_TEXT_MSG);
             message.messageId = jo.getString(KEY_MSG_ID);
             message.incoming = true;
+            message.receiverId = jo.getString(KEY_RECEIVER_ID);
+            message.senderId = jo.getString(KEY_SENDER_ID);
         } catch (JSONException e) {
             e.printStackTrace();
         }

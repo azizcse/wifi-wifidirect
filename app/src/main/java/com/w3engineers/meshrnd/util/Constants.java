@@ -31,4 +31,6 @@ public class Constants {
     public static String DEVICE_NAME = "device_name";
     public static String DEVICE_ADDRESS = "device_address";
 
+    public static String BASE_NETWORK_NAME = "meshp2p";
+
 }

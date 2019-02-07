@@ -2,36 +2,50 @@ package com.w3.meshlib.service;
 
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WpsInfo;
+import android.net.wifi.p2p.WifiP2pConfig;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
-import android.os.AsyncTask;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
+import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
+import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.Gson;
+import com.w3.meshlib.bluetooth.BluetoothManager;
+import com.w3.meshlib.common.Constant;
 import com.w3.meshlib.common.GroupDevice;
+import com.w3.meshlib.common.GroupServiceDevice;
+import com.w3.meshlib.common.MeshLog;
 import com.w3.meshlib.common.WiFiP2PError;
 import com.w3.meshlib.common.WiFiP2PInstance;
 import com.w3.meshlib.common.direct.WiFiDirectUtils;
 import com.w3.meshlib.common.listeners.ClientConnectedListener;
 import com.w3.meshlib.common.listeners.ClientDisconnectedListener;
 import com.w3.meshlib.common.listeners.DataReceivedListener;
+import com.w3.meshlib.common.listeners.MeshCallback;
+import com.w3.meshlib.common.listeners.MeshDataListener;
 import com.w3.meshlib.common.listeners.PeerConnectedListener;
+import com.w3.meshlib.common.listeners.ServiceConnectedListener;
+import com.w3.meshlib.common.listeners.ServiceDisconnectedListener;
+import com.w3.meshlib.common.listeners.ServiceDiscoveredListener;
 import com.w3.meshlib.common.listeners.ServiceRegisteredListener;
-import com.w3.meshlib.common.messages.DisconnectionMessageContent;
 import com.w3.meshlib.common.messages.MessageWrapper;
-import com.w3.meshlib.common.messages.RegisteredDevicesMessageContent;
-import com.w3.meshlib.common.messages.RegistrationMessageContent;
+import com.w3.meshlib.data.DBManager;
+import com.w3.meshlib.data.SharedPref;
+import com.w3.meshlib.model.Routing;
+import com.w3.meshlib.model.User;
+import com.w3.meshlib.parser.JsonParser;
+import com.w3.meshlib.protocol.DataListener;
+import com.w3.meshlib.protocol.MessageReceiver;
+import com.w3.meshlib.protocol.MessageSender;
+import com.w3.meshlib.settings.SettingsActivity;
 
-import org.apache.commons.io.IOUtils;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +80,7 @@ import java.util.Map;
  * }
  * </pre>
  */
-public class WiFiDirectService implements PeerConnectedListener {
+public class WiFiDirectService implements PeerConnectedListener, ServiceDisconnectedListener, DataListener {
 
 
     private static final String TAG = WiFiDirectService.class.getSimpleName();
@@ -75,23 +89,80 @@ public class WiFiDirectService implements PeerConnectedListener {
     public static final String SERVICE_PORT_PROPERTY = "SERVICE_PORT";
     public static final Integer SERVICE_PORT_VALUE = 9999;
     public static final String SERVICE_NAME_PROPERTY = "SERVICE_NAME";
-    public static final String SERVICE_NAME_VALUE = "WROUP";
+    public static final String SERVICE_NAME_VALUE = "MESH_RND";
     public static final String SERVICE_GROUP_NAME = "GROUP_NAME";
+    public static final String DEVELOPER_NAME = "DEVELOPER_NAME";
 
     private static WiFiDirectService instance;
 
     private DataReceivedListener dataReceivedListener;
     private ClientConnectedListener clientConnectedListener;
     private ClientDisconnectedListener clientDisconnectedListener;
+
     private Map<String, GroupDevice> clientsConnected = new HashMap<>();
     private WiFiP2PInstance wiFiP2PInstance;
 
-    private ServerSocket serverSocket;
     private Boolean groupAlreadyCreated = false;
+
+    private MessageSender messageSender;
+    private MessageReceiver messageReceiver;
+    private static User mCurrentUser;
+    private Map<String, User> mUsersMaps;
+    private MeshCallback meshCallback;
+    private static MeshDataListener meshDataListener;
+    private Context mContext;
+    public static final String WIFI_MASTER_PREFIX = "mesh-";
 
     private WiFiDirectService(Context context) {
         wiFiP2PInstance = WiFiP2PInstance.getInstance(context);
         wiFiP2PInstance.setPeerConnectedListener(this);
+        wiFiP2PInstance.setServerDisconnectedListener(this);
+        messageSender = new MessageSender();
+        messageReceiver = new MessageReceiver(context, this);
+        messageReceiver.startReceiver();
+        mUsersMaps = new HashMap<>();
+        mContext = context;
+        if (SharedPref.readBoolean(Constant.PREFKEY_MASTER_ENABLE)) {
+            createGroupInBackground();
+        }else {
+            clearWiFiP2pService();
+        }
+        onWiFi(context);
+    }
+
+    public void openSettings() {
+        // Open settings activity
+        MeshLog.d("Settings opened");
+        Intent intent = new Intent(mContext, SettingsActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        mContext.startActivity(intent);
+    }
+
+    public static WiFiDirectService on() {
+        return instance;
+    }
+
+    public void initMeshCallBack(MeshCallback callback) {
+        this.meshCallback = callback;
+    }
+
+    public void initMessageListener(MeshDataListener meshDataListener) {
+        this.meshDataListener = meshDataListener;
+    }
+
+
+    public List<User> getConnectedUsers() {
+        return new ArrayList<>(mUsersMaps.values());
+
+    }
+
+
+    private void onWiFi(Context context) {
+        WifiManager wifi = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (!wifi.isWifiEnabled()) {
+            wifi.setWifiEnabled(true);
+            MeshLog.d("WiFi Enabled");
+        }
     }
 
     /**
@@ -101,11 +172,38 @@ public class WiFiDirectService implements PeerConnectedListener {
      * @param context The application context.
      * @return The actual <code>WiFiDirectService</code> instance.
      */
-    public static WiFiDirectService getInstance(Context context) {
+    public static WiFiDirectService getInstance(Context context, User user) {
         if (instance == null) {
             instance = new WiFiDirectService(context);
         }
+        mCurrentUser = user;
         return instance;
+    }
+
+
+    public void createGroupInBackground() {
+        String name = WIFI_MASTER_PREFIX + SharedPref.read("name");
+        registerService(name, null);
+    }
+
+    private void clearWiFiP2pService(){
+        wiFiP2PInstance.getWifiP2pManager().requestGroupInfo(wiFiP2PInstance.getChannel(), new WifiP2pManager.GroupInfoListener() {
+            @Override
+            public void onGroupInfoAvailable(final WifiP2pGroup group) {
+                if (group != null) {
+                    wiFiP2PInstance.getWifiP2pManager().removeGroup(wiFiP2PInstance.getChannel(), new WifiP2pManager.ActionListener() {
+                        @Override
+                        public void onSuccess() {
+                            MeshLog.v("Clear p2p service success");
+                        }
+                        @Override
+                        public void onFailure(int reason) {
+                            MeshLog.v( "Error deleting group");
+                        }
+                    });
+                }
+            }
+        });
     }
 
     /**
@@ -142,7 +240,7 @@ public class WiFiDirectService implements PeerConnectedListener {
         record.put(SERVICE_PORT_PROPERTY, SERVICE_PORT_VALUE.toString());
         record.put(SERVICE_NAME_PROPERTY, SERVICE_NAME_VALUE);
         record.put(SERVICE_GROUP_NAME, groupName);
-
+        //record.put(DEVELOPER_NAME, "Aziz");
         // Insert the custom properties to the record Map
         if (customProperties != null) {
             for (Map.Entry<String, String> entry : customProperties.entrySet()) {
@@ -156,12 +254,12 @@ public class WiFiDirectService implements PeerConnectedListener {
 
             @Override
             public void onSuccess() {
-                Log.d(TAG, "Success clearing local services");
+                MeshLog.v("Success clearing local services");
             }
 
             @Override
             public void onFailure(int reason) {
-                Log.e(TAG, "Error clearing local services: " + reason);
+                MeshLog.v("Error clearing local services: " + reason);
             }
         });
 
@@ -169,22 +267,23 @@ public class WiFiDirectService implements PeerConnectedListener {
 
             @Override
             public void onSuccess() {
-                Log.d(TAG, "Service registered");
-                serviceRegisteredListener.onSuccessServiceRegistered();
-
+                MeshLog.v("Service registered");
+                if (serviceRegisteredListener != null) {
+                    serviceRegisteredListener.onSuccessServiceRegistered();
+                }
                 // Create the group to the clients can connect to it
                 removeAndCreateGroup();
 
-                // Create the socket that will accept request
-                createServerSocket();
             }
 
             @Override
             public void onFailure(int reason) {
                 WiFiP2PError wiFiP2PError = WiFiP2PError.fromReason(reason);
                 if (wiFiP2PError != null) {
-                    Log.e(TAG, "Failure registering the service. Reason: " + wiFiP2PError.name());
-                    serviceRegisteredListener.onErrorServiceRegistered(wiFiP2PError);
+                    MeshLog.v("Failure registering the service. Reason: " + wiFiP2PError.name());
+                    if (serviceRegisteredListener != null) {
+                        serviceRegisteredListener.onErrorServiceRegistered(wiFiP2PError);
+                    }
                 }
             }
 
@@ -196,7 +295,7 @@ public class WiFiDirectService implements PeerConnectedListener {
      * clients connected to notify the disconnection.
      */
     public void disconnect() {
-        if (serverSocket != null) {
+        /*if (serverSocket != null) {
             try {
                 serverSocket.close();
                 Log.i(TAG, "ServerSocket closed");
@@ -204,11 +303,12 @@ public class WiFiDirectService implements PeerConnectedListener {
                 Log.e(TAG, "Error closing the serverSocket");
             }
         }
+        serverSocket = null;
+        clientsConnected.clear();*/
+
+        messageReceiver.stopReceiver();
 
         groupAlreadyCreated = false;
-        serverSocket = null;
-        clientsConnected.clear();
-
         WiFiDirectUtils.removeGroup(wiFiP2PInstance);
         WiFiDirectUtils.clearLocalServices(wiFiP2PInstance);
         WiFiDirectUtils.stopPeerDiscovering(wiFiP2PInstance);
@@ -237,21 +337,12 @@ public class WiFiDirectService implements PeerConnectedListener {
      * Set the listener to know when a new client is registered in the group.
      *
      * @param clientConnectedListener The <code>ClientConnectedListener</code> to notify new
-     *                                 connections in the group.
+     *                                connections in the group.
      */
     public void setClientConnectedListener(ClientConnectedListener clientConnectedListener) {
         this.clientConnectedListener = clientConnectedListener;
     }
 
-    @Override
-    public void onPeerConnected(WifiP2pInfo wifiP2pInfo) {
-        Log.i(TAG, "OnPeerConnected...");
-
-        if (wifiP2pInfo.groupFormed && wifiP2pInfo.isGroupOwner) {
-            Log.i(TAG, "I am the group owner");
-            Log.i(TAG, "My addess is: " + wifiP2pInfo.groupOwnerAddress.getHostAddress());
-        }
-    }
 
     /**
      * Send a message to all the devices connected to the group.
@@ -271,93 +362,19 @@ public class WiFiDirectService implements PeerConnectedListener {
      * @param message The message to be sent.
      */
     public void sendMessage(final GroupDevice device, MessageWrapper message) {
-        // Set the actual device to the message
-        message.setWroupDevice(wiFiP2PInstance.getThisDevice());
-
-        new AsyncTask<MessageWrapper, Void, Void>() {
-            @Override
-            protected Void doInBackground(MessageWrapper... params) {
-                if (device != null && device.getDeviceServerSocketIP() != null) {
-                    try {
-                        Socket socket = new Socket();
-                        socket.bind(null);
-
-                        InetSocketAddress hostAddres = new InetSocketAddress(device.getDeviceServerSocketIP(), device.getDeviceServerSocketPort());
-                        socket.connect(hostAddres, 2000);
-
-                        Gson gson = new Gson();
-                        String messageJson = gson.toJson(params[0]);
-
-                        OutputStream outputStream = socket.getOutputStream();
-                        outputStream.write(messageJson.getBytes(), 0, messageJson.getBytes().length);
-
-                        Log.d(TAG, "Sending data: " + params[0]);
-
-                        socket.close();
-                        outputStream.close();
-                    } catch (IOException e) {
-                        Log.e(TAG, "Error creating client socket: " + e.getMessage());
-                    }
-                }
-
-                return null;
-            }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, message);
-    }
-
-    private void createServerSocket() {
-        if (serverSocket == null) {
-            new AsyncTask<Void, Void, Void>() {
-
-                @Override
-                protected Void doInBackground(Void... params) {
-
-                    try {
-                        serverSocket = new ServerSocket(SERVICE_PORT_VALUE);
-                        Log.i(TAG, "Server socket created. Accepting requests...");
-
-                        while (true) {
-                            Socket socket = serverSocket.accept();
-
-                            String dataReceived = IOUtils.toString(socket.getInputStream());
-                            Log.i(TAG, "Data received: " + dataReceived);
-                            Log.i(TAG, "From IP: " + socket.getInetAddress().getHostAddress());
-
-                            Gson gson = new Gson();
-                            MessageWrapper messageWrapper = gson.fromJson(dataReceived, MessageWrapper.class);
-                            onMessageReceived(messageWrapper, socket.getInetAddress());
-                        }
-                    } catch (IOException e) {
-                        Log.e(TAG, "Error creating/closing server socket: " + e.getMessage());
-                    }
-
-                    return null;
-                }
-
-            }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        }
+        messageSender.sendMessage(device.getIpAddress(), message.getMessage());
     }
 
 
     private void removeAndCreateGroup() {
         wiFiP2PInstance.getWifiP2pManager().requestGroupInfo(wiFiP2PInstance.getChannel(), new WifiP2pManager.GroupInfoListener() {
-
             @Override
             public void onGroupInfoAvailable(final WifiP2pGroup group) {
                 if (group != null) {
                     wiFiP2PInstance.getWifiP2pManager().removeGroup(wiFiP2PInstance.getChannel(), new WifiP2pManager.ActionListener() {
                         @Override
                         public void onSuccess() {
-                            Log.d(TAG, "Group deleted");
-                            Log.d(TAG, "\tNetwordk Name: " + group.getNetworkName());
-                            Log.d(TAG, "\tInterface: " + group.getInterface());
-                            Log.d(TAG, "\tPassword: " + group.getPassphrase());
-                            Log.d(TAG, "\tOwner Name: " + group.getOwner().deviceName);
-                            Log.d(TAG, "\tOwner Address: " + group.getOwner().deviceAddress);
-                            Log.d(TAG, "\tClient list size: " + group.getClientList().size());
-
                             groupAlreadyCreated = false;
-
                             // Now we can create the group
                             createGroup();
                         }
@@ -380,121 +397,451 @@ public class WiFiDirectService implements PeerConnectedListener {
 
                 @Override
                 public void onSuccess() {
-                    Log.i(TAG, "Group created!");
+                    MeshLog.v("Group created!");
                     groupAlreadyCreated = true;
                 }
 
                 @Override
                 public void onFailure(int reason) {
-                    Log.e(TAG, "Error creating group. Reason: " + WiFiP2PError.fromReason(reason));
+                    MeshLog.v("Error creating group. Reason: " + WiFiP2PError.fromReason(reason));
                 }
             });
         }
     }
 
-    private void onMessageReceived(MessageWrapper messageWrapper, InetAddress fromAddress) {
-        if (messageWrapper.getMessageType().equals(MessageWrapper.MessageType.CONNECTION_MESSAGE)) {
-            Gson gson = new Gson();
 
-            String messageContentStr = messageWrapper.getMessage();
-            RegistrationMessageContent registrationMessageContent = gson.fromJson(messageContentStr, RegistrationMessageContent.class);
-            GroupDevice client = registrationMessageContent.getWroupDevice();
-            client.setDeviceServerSocketIP(fromAddress.getHostAddress());
-            clientsConnected.put(client.getDeviceMac(), client);
+    @Override
+    public void onServerDisconnectedListener() {
 
-            Log.d(TAG, "New client registered:");
-            Log.d(TAG, "\tDevice name: " + client.getDeviceName());
-            Log.d(TAG, "\tDecive mac: " + client.getDeviceMac());
-            Log.d(TAG, "\tDevice IP: " + client.getDeviceServerSocketIP());
-            Log.d(TAG, "\tDevice ServerSocket port: " + client.getDeviceServerSocketPort());
+    }
 
-            // Sending to all clients that new client is connected
-            for (GroupDevice device : clientsConnected.values()) {
-                if (!client.getDeviceMac().equals(device.getDeviceMac())) {
-                    sendConnectionMessage(device, client);
+
+    /*********************************************************/
+    /******************** Client section *********************/
+    /*********************************************************/
+
+    private List<GroupServiceDevice> serviceDevices = new ArrayList<>();
+    private WifiP2pManager.DnsSdTxtRecordListener dnsSdTxtRecordListener;
+    private WifiP2pManager.DnsSdServiceResponseListener dnsSdServiceResponseListener;
+    private GroupDevice groupDevice;
+    private ServiceConnectedListener serviceConnectedListener;
+    private Boolean isRegistered = false;
+
+    /**
+     * Start to discover Wroup services registered in the current local network.
+     * <p>
+     * Before you start to discover services you must to register the <code>WiFiDirectBroadcastReceiver</code>
+     * in the <code>onResume()</code> method of your activity.
+     *
+     * @param discoveringTimeInMillis   The time in milliseconds to search for registered Wroup services.
+     * @param serviceDiscoveredListener The listener to notify changes of the services found by the client.
+     * @see
+     */
+    public void discoverServices(Long discoveringTimeInMillis, final ServiceDiscoveredListener serviceDiscoveredListener) {
+        serviceDevices.clear();
+
+        // We need to start discovering peers to activate the service search
+        wiFiP2PInstance.startPeerDiscovering();
+
+        setupDnsListeners(wiFiP2PInstance, serviceDiscoveredListener);
+        WiFiDirectUtils.clearServiceRequest(wiFiP2PInstance);
+
+        WifiP2pServiceRequest serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
+        wiFiP2PInstance.getWifiP2pManager().addServiceRequest(wiFiP2PInstance.getChannel(), serviceRequest, new WifiP2pManager.ActionListener() {
+
+            @Override
+            public void onSuccess() {
+                MeshLog.v("Success adding service request");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                WiFiP2PError wiFiP2PError = WiFiP2PError.fromReason(reason);
+                MeshLog.v("Error adding service request. Reason: " + WiFiP2PError.fromReason(reason));
+                serviceDiscoveredListener.onError(wiFiP2PError);
+            }
+
+        });
+
+        wiFiP2PInstance.getWifiP2pManager().discoverServices(wiFiP2PInstance.getChannel(), new WifiP2pManager.ActionListener() {
+
+            @Override
+            public void onSuccess() {
+                MeshLog.v("Success initiating disconvering services");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                WiFiP2PError wiFiP2PError = WiFiP2PError.fromReason(reason);
+                if (wiFiP2PError != null) {
+                    Log.e(TAG, "Error discovering services. Reason: " + wiFiP2PError.name());
+                    serviceDiscoveredListener.onError(wiFiP2PError);
+                }
+            }
+
+        });
+
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                serviceDiscoveredListener.onFinishServiceDeviceDiscovered(serviceDevices);
+            }
+        }, discoveringTimeInMillis);
+    }
+
+
+    /**
+     * Start the connection with the <code>GroupServiceDevice</code> passed by argument. When the
+     * connection is stablished with the device service the {@link ServiceConnectedListener#onServiceConnected(GroupDevice)}
+     * method is called.
+     * <p>
+     * When the client is connected to the service, it's connected to the WiFi Direct Group created
+     * by the service device. Once the client belongs to the "Wroup" (group), it can know when a new
+     * client is connected or disconnected from it.
+     *
+     * @param serviceDevice            The GroupServiceDevice with you want to connect.
+     * @param serviceConnectedListener The listener to know when the client device is connected to
+     *                                 the desired service.
+     */
+    public void connectToService(final GroupServiceDevice serviceDevice, ServiceConnectedListener serviceConnectedListener) {
+        this.groupDevice = serviceDevice;
+        this.serviceConnectedListener = serviceConnectedListener;
+
+        WifiP2pConfig wifiP2pConfig = new WifiP2pConfig();
+        wifiP2pConfig.deviceAddress = serviceDevice.getDeviceMac();
+        wifiP2pConfig.groupOwnerIntent = 0;
+        wifiP2pConfig.wps.setup = WpsInfo.PBC;
+
+        wiFiP2PInstance.getWifiP2pManager().connect(wiFiP2PInstance.getChannel(), wifiP2pConfig, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                MeshLog.v("Initiated connection to device: ");
+                MeshLog.v("\tDevice name: " + serviceDevice.getDeviceName());
+                MeshLog.v("\tDevice address: " + serviceDevice.getDeviceMac());
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                MeshLog.v("Fail initiation connection. Reason: " + WiFiP2PError.fromReason(reason));
+            }
+        });
+    }
+
+
+    private void setupDnsListeners(WiFiP2PInstance wiFiP2PInstance, ServiceDiscoveredListener serviceDiscoveredListener) {
+        if (dnsSdTxtRecordListener == null || dnsSdServiceResponseListener == null) {
+            dnsSdTxtRecordListener = getTxtRecordListener(serviceDiscoveredListener);
+            dnsSdServiceResponseListener = getServiceResponseListener();
+
+            wiFiP2PInstance.getWifiP2pManager().setDnsSdResponseListeners(wiFiP2PInstance.getChannel(), dnsSdServiceResponseListener, dnsSdTxtRecordListener);
+            MeshLog.v("setDnsSdResponseListeners() called");
+        } else {
+            MeshLog.v("setDnsSdResponseListeners() not called");
+        }
+    }
+
+    private WifiP2pManager.DnsSdTxtRecordListener getTxtRecordListener(final ServiceDiscoveredListener serviceDiscoveredListener) {
+        return new WifiP2pManager.DnsSdTxtRecordListener() {
+
+            @Override
+            public void onDnsSdTxtRecordAvailable(String fullDomainName, Map<String, String> txtRecordMap, WifiP2pDevice device) {
+
+                if (txtRecordMap.containsKey(WiFiDirectService.SERVICE_NAME_PROPERTY)
+                        && txtRecordMap.get(WiFiDirectService.SERVICE_NAME_PROPERTY).equalsIgnoreCase(WiFiDirectService.SERVICE_NAME_VALUE)) {
+
+                    Integer servicePort = Integer.valueOf(txtRecordMap.get(WiFiDirectService.SERVICE_PORT_PROPERTY));
+                    GroupServiceDevice serviceDevice = new GroupServiceDevice(device);
+                    serviceDevice.setDeviceServerSocketPort(servicePort);
+                    serviceDevice.setTxtRecordMap(txtRecordMap);
+                    serviceDevice.setGroupName(fullDomainName);
+                    MeshLog.v("Group name =" + fullDomainName + " mac =" + device.deviceAddress + " device name =" + device.deviceName);
+                    if (!serviceDevices.contains(serviceDevice)) {
+                        serviceDevices.add(serviceDevice);
+                        serviceDiscoveredListener.onNewServiceDeviceDiscovered(serviceDevice);
+                    }
                 } else {
-                    sendRegisteredDevicesMessage(device);
+                    MeshLog.v("New service mac =" + device.deviceAddress + " device name =" + device.deviceName);
                 }
             }
+        };
+    }
 
-            if (clientConnectedListener != null) {
-                clientConnectedListener.onClientConnected(client);
+    private WifiP2pManager.DnsSdServiceResponseListener getServiceResponseListener() {
+        return new WifiP2pManager.DnsSdServiceResponseListener() {
+
+            @Override
+            public void onDnsSdServiceAvailable(String instanceName, String registrationType, WifiP2pDevice srcDevice) {
+
             }
-        } else if (messageWrapper.getMessageType().equals(MessageWrapper.MessageType.DISCONNECTION_MESSAGE)) {
-            Gson gson = new Gson();
+        };
+    }
 
-            String messageContentStr = messageWrapper.getMessage();
-            DisconnectionMessageContent disconnectionMessageContent = gson.fromJson(messageContentStr, DisconnectionMessageContent.class);
-            GroupDevice client = disconnectionMessageContent.getWroupDevice();
-            clientsConnected.remove(client.getDeviceMac());
+    @Override
+    public void onPeerConnected(WifiP2pInfo wifiP2pInfo) {
+        MeshLog.v("OnPeerConnected...");
+        GroupDevice groupDevice = wiFiP2PInstance.getThisDevice();
+        if (groupDevice == null) return;
 
-            Log.d(TAG, "Client disconnected:");
-            Log.d(TAG, "\tDevice name: " + client.getDeviceName());
-            Log.d(TAG, "\tDecive mac: " + client.getDeviceMac());
-            Log.d(TAG, "\tDevice IP: " + client.getDeviceServerSocketIP());
-            Log.d(TAG, "\tDevice ServerSocket port: " + client.getDeviceServerSocketPort());
+        if (groupDevice != null) {
+            meshCallback.onDeviceInfoUpdated(groupDevice.getDeviceName(), wifiP2pInfo.isGroupOwner);
+        } else {
+            meshCallback.onDeviceInfoUpdated(wifiP2pInfo.groupOwnerAddress.getHostName(), wifiP2pInfo.isGroupOwner);
+        }
 
-            // Sending to all clients that a client is disconnected now
-            for (GroupDevice device : clientsConnected.values()) {
-                if (!client.getDeviceMac().equals(device.getDeviceMac())) {
-                    sendDisconnectionMessage(device, client);
+        if (wifiP2pInfo.groupFormed && wifiP2pInfo.isGroupOwner) {
+            MeshLog.v("Group owner, I'am not a client!");
+            return;
+        }
+
+        if (serviceConnectedListener != null) {
+            serviceConnectedListener.onServiceConnected(groupDevice);
+        }
+
+        MeshLog.v("Send own info");
+        if(wifiP2pInfo.groupFormed && wifiP2pInfo.groupOwnerAddress != null) {
+
+            groupDevice.setIpAddress(wifiP2pInfo.groupOwnerAddress.getHostAddress());            //clientsConnected.put(groupDevice.getDeviceMac(), groupDevice);
+
+
+            sendMyUserInfo(groupDevice.getIpAddress(), Constant.TYPE_USER_HELLO_REQ);
+        }
+
+    }
+
+
+    private void sendMyUserInfo(String ipAddress, int type) {
+        MeshLog.v("Send my info");
+        GroupDevice groupDevice = wiFiP2PInstance.getThisDevice();
+        String myUserInfo = JsonParser.buildMyHelloInfo(groupDevice, mCurrentUser, type);
+
+        if (myUserInfo == null) return;
+        MeshLog.v("Send my info to api =" + myUserInfo);
+        messageSender.sendMessage(myUserInfo, ipAddress);
+    }
+
+    private void sendOtherConnectedUsersInfo(String receiverIp) {
+        List<User> userList = getConnectedUsers();
+
+        if (userList.size() == 0) return;
+
+        for (User item : userList) {
+
+            int type = Constant.USER_TYPE_VIA_ME;
+
+            if (item.isDirectConnection()) {
+
+                type = Constant.USER_TYPE_DIRECT;
+            }
+
+            String userJson = JsonParser.buildUserJsonToSendDirectConnectedUser(item, type);
+
+            if (TextUtils.isEmpty(userJson)) continue;
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            messageSender.sendMessage(userJson, receiverIp);
+        }
+    }
+
+    private void sendNewUserToOtherUsers(User user) {
+        MeshLog.v("sendNewUserToOtherUsers()  ");
+        int type = Constant.USER_TYPE_VIA_ME;
+
+        if (user.isDirectConnection()) {
+            type = Constant.USER_TYPE_DIRECT;
+        }
+
+        String usersJson = JsonParser.buildUserJsonToSendDirectConnectedUser(user, type);
+
+        if (TextUtils.isEmpty(usersJson)) return;
+
+        List<User> userList = getConnectedUsers();
+        MeshLog.v("sendNewUserToOtherUsers()  list size =" + userList.size());
+
+        for (User item : userList) {
+            if (item.isDirectConnection()) {
+                messageSender.sendMessage(usersJson, item.getIpAddress());
+            }
+        }
+
+    }
+
+    @Override
+    public void onMessageReceived(String msg, String ipAddress) {
+        int type = JsonParser.getType(msg);
+
+        switch (type) {
+            case Constant.TYPE_USER_HELLO_REQ:
+                MeshLog.v("Received TYPE_USER_HELLO_REQ");
+                sendMyUserInfo(ipAddress, Constant.TYPE_USER_HELLO_RES);
+
+                sendOtherConnectedUsersInfo(ipAddress);
+
+                User user = JsonParser.parseUsers(msg, ipAddress);
+
+                if (user == null) return;
+                user.setDirectConnection(true);
+                sendNewUserToOtherUsers(user);
+
+                mUsersMaps.put(user.getUserId(), user);
+                //call back to ui
+                onUiUpdate(user);
+
+                break;
+            case Constant.TYPE_USER_HELLO_RES:
+                MeshLog.v("Received TYPE_USER_HELLO_RES");
+                user = JsonParser.parseUsers(msg, ipAddress);
+                if (user == null) return;
+                user.setDirectConnection(true);
+
+                if (!mUsersMaps.containsKey(user.getUserId())) {
+                    /**
+                     * If user is new send it to other
+                     */
+                    sendP2pUsersToBleUsers(user);
+
+                    sendBleUserToRecentDiscoveredUser(user);
                 }
-            }
 
-            if (clientDisconnectedListener != null) {
-                clientDisconnectedListener.onClientDisconnected(client);
+                mUsersMaps.put(user.getUserId(), user);
+                //Call back to UI
+                onUiUpdate(user);
+
+
+                break;
+
+            case Constant.TYPE_USER_DISCO:
+                MeshLog.v("Received TYPE_USER_DISCO");
+
+                user = JsonParser.parseP2pSingleUserJson(msg, ipAddress);
+
+                if (!mUsersMaps.containsKey(user.getUserId())) {
+                    sendP2pUsersToBleUsers(user);
+
+                    sendBleUserToRecentDiscoveredUser(user);
+                }
+
+
+                mUsersMaps.put(user.getUserId(), user);
+                //Call back to UI
+                onUiUpdate(user);
+                /**
+                 * If user is new send it to other
+                 */
+
+                break;
+
+            case Constant.TYPE_TEXT_MESSAGE:
+                String receiverAddress = JsonParser.getReceiver(msg);
+                MeshLog.v("TYPE_TEXT_MESSAGE received");
+                if (mCurrentUser.getUserId().equals(receiverAddress)) {
+
+                    if (meshDataListener != null) {
+                        meshDataListener.onDataReceived(msg);
+                    }
+                } else {
+                    /**
+                     * Get medium form routing table
+                     */
+                    sendMessageBasedOnRoutingInfo(msg, receiverAddress);
+                }
+                meshCallback.onMessageReceived(msg, "");
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private void onUiUpdate(User user) {
+        DBManager.on().saveUser(user);
+        if (meshCallback != null) {
+            meshCallback.onUserDiscovered(user);
+        }
+    }
+
+
+    public int sendP2pMessage(String message, String ipAddress) {
+        messageSender.sendMessage(message, ipAddress);
+        return 1;
+    }
+
+
+    public void sendMessageTo(String message, String receiverId) {
+        MeshLog.v("check send to p2p2");
+        List<User> users = getConnectedUsers();
+        for (User item : users) {
+            if (receiverId.equals(item.getUserId())) {
+                String dbmedium = DBManager.on().getMedium(item.getUserId());
+                MeshLog.v("TYPE_TEXT_MESSAGE P2P send DB =" + dbmedium + "  CC =" + item.getIpAddress());
+
+                messageSender.sendMessage(message, item.getIpAddress());
+                break;
+            }
+        }
+    }
+
+    public void sendBleDiscoveredUsersToWiFi(User user) {
+        List<User> userList = getConnectedUsers();
+
+        String userJson = JsonParser.buildUserJsonToSendDirectConnectedUser(user, Constant.USER_TYPE_VIA_ME);
+
+        if (TextUtils.isEmpty(userJson)) return;
+
+        MeshLog.v("Ble To P2P list size =" + userList.size());
+        for (User item : userList) {
+            MeshLog.v("Ble To P2P item value =" + item.getUserName() + " d =" + item.isDirectConnection());
+            if (item.isDirectConnection()) {
+                messageSender.sendMessage(userJson, item.getIpAddress());
+            }
+        }
+    }
+
+    public void sendP2pUsersToBleUsers(User user) {
+        BluetoothManager.getInstance().sendP2pUsersToBleUsers(user);
+    }
+
+
+    private void sendBleUserToRecentDiscoveredUser(User user) {
+        if (user.isDirectConnection()) {
+            List<User> userList = BluetoothManager.getBlueToothUsers();
+            for (User item : userList) {
+                String userJson = JsonParser.buildUserJsonToSendDirectConnectedUser(item, Constant.USER_TYPE_VIA_ME);
+
+                messageSender.sendMessage(userJson, user.getIpAddress());
+            }
+        }
+    }
+
+
+    public int sendMessageBasedOnRoutingInfo(String message, String receiverId) {
+        Routing routingInfo = DBManager.on().getRouting(receiverId);
+
+        if (routingInfo == null) return -1;
+
+        MeshLog.v(routingInfo.toString());
+
+        if (routingInfo.isBleUser()) {
+
+            List<User> bleUserList = BluetoothManager.getBlueToothUsers();
+            for (User item : bleUserList) {
+
+                if (item.getUserId().equals(receiverId) && item.getBleLink() != null) {
+                    MeshLog.v("Routing user id ="+item.getUserId());
+                    item.getBleLink().write(message.getBytes());
+                    return 1;
+                }
             }
         } else {
-            if (dataReceivedListener != null) {
-                dataReceivedListener.onDataReceived(messageWrapper);
-            }
+            messageSender.sendMessage(message, routingInfo.getIpAddress());
+            return 1;
         }
-    }
-
-    private void sendConnectionMessage(GroupDevice deviceToSend, GroupDevice deviceConnected) {
-        RegistrationMessageContent content = new RegistrationMessageContent();
-        content.setWroupDevice(deviceConnected);
-
-        Gson gson = new Gson();
-
-        MessageWrapper messageWrapper = new MessageWrapper();
-        messageWrapper.setMessageType(MessageWrapper.MessageType.CONNECTION_MESSAGE);
-        messageWrapper.setMessage(gson.toJson(content));
-
-        sendMessage(deviceToSend, messageWrapper);
-    }
-
-    private void sendDisconnectionMessage(GroupDevice deviceToSend, GroupDevice deviceDisconnected) {
-        DisconnectionMessageContent content = new DisconnectionMessageContent();
-        content.setWroupDevice(deviceDisconnected);
-
-        Gson gson = new Gson();
-
-        MessageWrapper disconnectionMessage = new MessageWrapper();
-        disconnectionMessage.setMessageType(MessageWrapper.MessageType.DISCONNECTION_MESSAGE);
-        disconnectionMessage.setMessage(gson.toJson(content));
-
-        sendMessage(deviceToSend, disconnectionMessage);
-    }
-
-    private void sendRegisteredDevicesMessage(GroupDevice deviceToSend) {
-        List<GroupDevice> devicesConnected = new ArrayList<>();
-        for (GroupDevice device : clientsConnected.values()) {
-            if (!device.getDeviceMac().equals(deviceToSend.getDeviceMac())) {
-                devicesConnected.add(device);
-            }
-        }
-
-        RegisteredDevicesMessageContent content = new RegisteredDevicesMessageContent();
-        content.setDevicesRegistered(devicesConnected);
-
-        Gson gson = new Gson();
-
-        MessageWrapper messageWrapper = new MessageWrapper();
-        messageWrapper.setMessageType(MessageWrapper.MessageType.REGISTERED_DEVICES);
-        messageWrapper.setMessage(gson.toJson(content));
-
-        sendMessage(deviceToSend, messageWrapper);
+        return -1;
     }
 
 }
+
