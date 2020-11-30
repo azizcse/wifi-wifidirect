@@ -14,7 +14,7 @@
     <string name="btn_accept">Accept</string>
     <string name="btn_cancel">Cancel</string>
 
-    <!-- Group Chat Activiy -->
+    <!-- Group Chat Activity -->
     <string name="send_button">Send</string>
     <string name="device_connected">%s device connected to the group</string>
     <string name="device_disconnected">%s device disconnected from the group</string>

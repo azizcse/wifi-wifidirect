@@ -23,7 +23,7 @@ import com.w3.meshlib.common.direct.WiFiDirectUtils;
 import com.w3.meshlib.common.listeners.ClientConnectedListener;
 import com.w3.meshlib.common.listeners.ClientDisconnectedListener;
 import com.w3.meshlib.common.listeners.DataReceivedListener;
-import com.w3.meshlib.common.listeners.PeerConnectedListener;
+import com.w3.meshlib.common.listeners.ConnectionInfoListener;
 import com.w3.meshlib.common.listeners.ServiceConnectedListener;
 import com.w3.meshlib.common.listeners.ServiceDisconnectedListener;
 import com.w3.meshlib.common.listeners.ServiceDiscoveredListener;
@@ -82,7 +82,7 @@ import java.util.Map;
  * {@link #connectToService(GroupServiceDevice, ServiceConnectedListener)} passing as argument the
  * appropiate {@link GroupServiceDevice} obtained in the <code>discoverServices()</code> call.
  */
-public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnectedListener {
+public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconnectedListener {
 
     private static final String TAG = WiFiDirectClient.class.getSimpleName();
 
@@ -264,7 +264,7 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
     }
 
     @Override
-    public void onPeerConnected(WifiP2pInfo wifiP2pInfo) {
+    public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
         Log.i(TAG, "OnPeerConnected...");
 
         if (wifiP2pInfo.groupFormed && wifiP2pInfo.isGroupOwner) {
@@ -426,28 +426,11 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
             @Override
             public void onDnsSdTxtRecordAvailable(String fullDomainName, Map<String, String> txtRecordMap, WifiP2pDevice device) {
 
-                if (txtRecordMap.containsKey(WiFiDirectService.SERVICE_NAME_PROPERTY)
-                        && txtRecordMap.get(WiFiDirectService.SERVICE_NAME_PROPERTY).equalsIgnoreCase(WiFiDirectService.SERVICE_NAME_VALUE)) {
-                    Integer servicePort = Integer.valueOf(txtRecordMap.get(WiFiDirectService.SERVICE_PORT_PROPERTY));
-                    GroupServiceDevice serviceDevice = new GroupServiceDevice(device);
-                    serviceDevice.setDeviceServerSocketPort(servicePort);
-                    serviceDevice.setTxtRecordMap(txtRecordMap);
-
-                    if (!serviceDevices.contains(serviceDevice)) {
-                        Log.i(TAG, "Found a new Wroup service: ");
-                        Log.i(TAG, "\tDomain Name: " + fullDomainName);
-                        Log.i(TAG, "\tDevice Name: " + device.deviceName);
-                        Log.i(TAG, "\tDevice Address: " + device.deviceAddress);
-                        Log.i(TAG, "\tServer socket Port: " + serviceDevice.getDeviceServerSocketPort());
-
-                        serviceDevices.add(serviceDevice);
-                        serviceDiscoveredListener.onNewServiceDeviceDiscovered(serviceDevice);
-                    }
+                if (txtRecordMap.containsKey("pass")){
+                    Log.e(TAG, "Discovered ssid : "+txtRecordMap.get("ssid"));
+                    Log.e(TAG, "Discovered pass : "+txtRecordMap.get("pass"));
                 } else {
-                    Log.d(TAG, "Found a new service: ");
-                    Log.d(TAG, "\tDomain Name: " + fullDomainName);
-                    Log.d(TAG, "\tDevice Name: " + device.deviceName);
-                    Log.d(TAG, "\tDevice Address: " + device.deviceAddress);
+                    Log.e(TAG, "Discovered wifi service...... success domen: "+fullDomainName);
                 }
             }
         };
@@ -455,10 +438,9 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
 
     private DnsSdServiceResponseListener getServiceResponseListener() {
         return new DnsSdServiceResponseListener() {
-
             @Override
             public void onDnsSdServiceAvailable(String instanceName, String registrationType, WifiP2pDevice srcDevice) {
-
+                Log.e(TAG, "Discovered wifi service...... success name: "+instanceName+" Type: "+registrationType);
             }
         };
     }
@@ -499,6 +481,7 @@ public class WiFiDirectClient implements PeerConnectedListener, ServiceDisconnec
 
             }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
+
     }
 
     private void onMessageReceived(MessageWrapper messageWrapper) {

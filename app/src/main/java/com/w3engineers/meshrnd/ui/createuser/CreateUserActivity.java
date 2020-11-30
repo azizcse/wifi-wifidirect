@@ -10,6 +10,7 @@ import android.view.View;
 
 import com.w3engineers.meshrnd.R;
 import com.w3engineers.meshrnd.databinding.ActivityCreateUserBinding;
+import com.w3engineers.meshrnd.ui.group.GroupActivity;
 import com.w3engineers.meshrnd.ui.main.MainActivity;
 import com.w3engineers.meshrnd.util.Constants;
 import com.w3engineers.meshrnd.util.SharedPref;
@@ -31,7 +32,7 @@ public class CreateUserActivity extends AppCompatActivity implements View.OnClic
 
         if (!SharedPref.read(Constants.NAME).equals("")){
 
-            Intent intent = new Intent(this, MainActivity.class);
+            Intent intent = new Intent(this, GroupActivity.class);
             startActivity(intent);
             finish();
         }

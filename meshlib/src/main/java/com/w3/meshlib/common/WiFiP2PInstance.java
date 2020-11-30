@@ -6,7 +6,7 @@ import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 
-import com.w3.meshlib.common.listeners.PeerConnectedListener;
+import com.w3.meshlib.common.listeners.ConnectionInfoListener;
 import com.w3.meshlib.common.listeners.ServiceDisconnectedListener;
 
 
@@ -22,7 +22,7 @@ public class WiFiP2PInstance implements WifiP2pManager.ConnectionInfoListener {
 
     private GroupDevice thisDevice;
 
-    private PeerConnectedListener peerConnectedListener;
+    private ConnectionInfoListener peerConnectedListener;
     private ServiceDisconnectedListener serviceDisconnectedListener;
 
     private WiFiP2PInstance() {
@@ -65,7 +65,7 @@ public class WiFiP2PInstance implements WifiP2pManager.ConnectionInfoListener {
         return thisDevice;
     }
 
-    public void setPeerConnectedListener(PeerConnectedListener peerConnectedListener) {
+    public void setPeerConnectedListener(ConnectionInfoListener peerConnectedListener) {
         this.peerConnectedListener = peerConnectedListener;
     }
 
@@ -90,7 +90,7 @@ public class WiFiP2PInstance implements WifiP2pManager.ConnectionInfoListener {
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo info) {
         if (peerConnectedListener != null) {
-            peerConnectedListener.onPeerConnected(info);
+            peerConnectedListener.onConnectionInfoAvailable(info);
         }
     }
 

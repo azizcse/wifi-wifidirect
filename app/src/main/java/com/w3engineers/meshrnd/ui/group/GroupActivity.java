@@ -28,6 +28,10 @@ import com.w3engineers.meshrnd.R;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION;
+import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION;
+import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION;
+
 public class GroupActivity extends AppCompatActivity implements GroupCreationDialog.GroupCreationAcceptButtonListener {
 
     private static final String TAG = GroupActivity.class.getSimpleName();
@@ -70,10 +74,9 @@ public class GroupActivity extends AppCompatActivity implements GroupCreationDia
         super.onResume();
 
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+        intentFilter.addAction(WIFI_P2P_STATE_CHANGED_ACTION);
+        intentFilter.addAction(WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        intentFilter.addAction(WIFI_P2P_PEERS_CHANGED_ACTION);
         registerReceiver(wiFiDirectBroadcastReceiver, intentFilter);
     }
 
