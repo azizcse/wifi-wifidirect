@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">MeshRnD</string>
+    <string name="app_name">WiFip2p</string>
     <string name="title_activity_create_user">CreateUser</string>
 
     <!--Main Activity -->
