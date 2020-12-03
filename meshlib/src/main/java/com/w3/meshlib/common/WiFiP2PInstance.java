@@ -90,7 +90,10 @@ public class WiFiP2PInstance implements WifiP2pManager.ConnectionInfoListener {
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo info) {
         if (peerConnectedListener != null) {
+            Log.i("WiFiDirectService", "onConnectionInfoAvailable listener not null");
             peerConnectedListener.onConnectionInfoAvailable(info);
+        }else {
+            Log.i("WiFiDirectService", "onConnectionInfoAvailable listener null");
         }
     }
 

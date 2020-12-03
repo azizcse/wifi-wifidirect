@@ -25,7 +25,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
         String action = intent.getAction();
 
         if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
-
+            Log.d("WiFiDirectService", "WIFI_P2P_STATE_CHANGED_ACTION");
             int state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
             if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
                 Log.i("WiFiDirectService", "WiFi P2P is active");
@@ -35,7 +35,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
         } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
 
-            Log.d(TAG, "New peers detected. Requesting peers list...");
+            Log.d("WiFiDirectService", "WIFI_P2P_PEERS_CHANGED_ACTION");
 
             if (wiFiP2PInstance != null) {
                 wiFiP2PInstance.getWifiP2pManager().requestPeers(wiFiP2PInstance.getChannel(), new WifiP2pManager.PeerListListener() {
@@ -59,6 +59,8 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
         } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
 
             NetworkInfo networkInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
+            Log.d("WiFiDirectService", "WIFI_P2P_CONNECTION_CHANGED_ACTION  :"+networkInfo.isConnected());
+
             if (networkInfo.isConnected()) {
                 Log.d("WiFiDirectService", "New device is connected");
                 wiFiP2PInstance.getWifiP2pManager().requestConnectionInfo(wiFiP2PInstance.getChannel(), wiFiP2PInstance);

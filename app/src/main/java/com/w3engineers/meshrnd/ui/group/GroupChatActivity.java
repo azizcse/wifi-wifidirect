@@ -51,7 +51,7 @@ public class GroupChatActivity extends AppCompatActivity implements
         isGroupOwner = startIntent.getBooleanExtra(EXTRA_IS_GROUP_OWNER, false);
 
         if (isGroupOwner) {
-            wroupService = WiFiDirectService.getInstance(getApplicationContext());
+            wroupService = new WiFiDirectService(getApplicationContext());
             wroupService.setDataReceivedListener(this);
             wroupService.setClientDisconnectedListener(this);
             wroupService.setClientConnectedListener(this);
