@@ -63,14 +63,14 @@ public class GroupActivity extends AppCompatActivity implements GroupCreationDia
         btnJoinGroup.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                checkPermissionAndSearchGo();
             }
         });
     }
 
     private void checkPermissionAndSearchGo(){
         if(PermissionUtil.init(this).request(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)){
-
+            controller.searchGo();
         }
     }
 
