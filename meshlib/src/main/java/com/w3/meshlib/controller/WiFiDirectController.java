@@ -45,11 +45,12 @@ public class WiFiDirectController {
     }
 
     public void stopAll(){
-
+        stopGo();
+        stopGoSearch();
     }
 
     public void startAll(){
-        createGo();
-        searchGo();
+        wiFiDirectService.registerService();
+        wiFiDirectClient.initializeServicesDiscovery();
     }
 }

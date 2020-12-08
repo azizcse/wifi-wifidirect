@@ -39,9 +39,6 @@ public class GroupActivity extends AppCompatActivity implements GroupCreationDia
 
     private WiFiDirectBroadcastReceiver wiFiDirectBroadcastReceiver;
     private WiFiDirectController controller;
-    private WiFiDirectClient wroupClient;
-
-    private GroupCreationDialog groupCreationDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
