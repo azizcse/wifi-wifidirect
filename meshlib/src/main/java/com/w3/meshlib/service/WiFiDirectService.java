@@ -163,6 +163,12 @@ public class WiFiDirectService implements ConnectionInfoListener {
         record.put("available", "visible");
         record.put("ssid", ssId);
         record.put("pass",password);
+        record.put("1","abcrlskfkgfekgelgklekflkgegklegklegklegk");
+        record.put("2","abcrlskfkgfekgelgklekflkgegklegklegklegk");
+        record.put("3","abcrlskfkgfekgelgklekflkgegklegklegklegk");
+        record.put("4","abcrlskfkgfekgelgklekflkgegklegklegklegk");
+        record.put("5","abcrlskfkgfekgelgklekflkgegklegklegklegk");
+        record.put("6","abcrlskfkgfekgelgklekflkgegklegklegklegk");
 
         Log.e(TAG, "Advertise local service triggered........");
 

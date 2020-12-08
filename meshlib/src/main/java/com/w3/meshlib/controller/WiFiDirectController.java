@@ -53,4 +53,6 @@ public class WiFiDirectController {
         wiFiDirectService.registerService();
         wiFiDirectClient.initializeServicesDiscovery();
     }
+
+
 }

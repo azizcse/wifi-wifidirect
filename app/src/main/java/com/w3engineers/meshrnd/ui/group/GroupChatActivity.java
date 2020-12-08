@@ -50,7 +50,7 @@ public class GroupChatActivity extends AppCompatActivity implements
         groupName = startIntent.getStringExtra(EXTRA_GROUP_NAME);
         isGroupOwner = startIntent.getBooleanExtra(EXTRA_IS_GROUP_OWNER, false);
 
-        if (isGroupOwner) {
+        /*if (isGroupOwner) {
             wroupService = new WiFiDirectService(getApplicationContext());
             wroupService.setDataReceivedListener(this);
             wroupService.setClientDisconnectedListener(this);
@@ -60,7 +60,7 @@ public class GroupChatActivity extends AppCompatActivity implements
             wroupClient.setDataReceivedListener(this);
             wroupClient.setClientDisconnectedListener(this);
             wroupClient.setClientConnectedListener(this);
-        }
+        }*/
 
         listViewChat = (ListView) findViewById(R.id.list_view_group_chat);
         Button btnSend = (Button) findViewById(R.id.button_send_message);
@@ -77,11 +77,11 @@ public class GroupChatActivity extends AppCompatActivity implements
                     normalMessage.setMessage(editTextMessage.getText().toString());
                     normalMessage.setMessageType(MessageWrapper.MessageType.NORMAL);
 
-                    if (isGroupOwner) {
+                   /* if (isGroupOwner) {
                         wroupService.sendMessageToAllClients(normalMessage);
                     } else {
                         wroupClient.sendMessageToAllClients(normalMessage);
-                    }
+                    }*/
 
                     chatAdapter.add(normalMessage);
                     editTextMessage.setText("");
