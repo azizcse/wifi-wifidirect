@@ -2,6 +2,7 @@ package com.w3.meshlib.service;
 
 
 import android.content.Context;
+import android.content.IntentFilter;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -9,6 +10,7 @@ import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.util.Log;
 
 import com.w3.meshlib.common.GroupDevice;
+import com.w3.meshlib.common.WiFiDirectBroadcastReceiver;
 import com.w3.meshlib.common.WiFiP2PError;
 import com.w3.meshlib.common.WiFiP2PInstance;
 import com.w3.meshlib.common.direct.WiFiDirectUtils;
@@ -23,6 +25,10 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.Map;
+
+import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION;
+import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION;
+import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION;
 
 /**
  * Singleton class acting as a "server" device.
@@ -59,19 +65,31 @@ public class WiFiDirectService implements ConnectionInfoListener {
     private static final String TAG = WiFiDirectService.class.getSimpleName();
 
     private static final String SERVICE_TYPE = "_wroup._tcp";
-    public static final String SERVICE_GROUP_NAME = "GROUP_NAME";
-
 
     private Map<String, GroupDevice> clientsConnected = new HashMap<>();
     private WiFiP2PInstance wiFiP2PInstance;
-
-
+    private WiFiDirectBroadcastReceiver broadcastReceiver;
     private Boolean groupAlreadyCreated = false;
+    private Context mContext;
+    private String myNodeId;
 
-    public WiFiDirectService(Context context) {
+    public WiFiDirectService(Context context, String userId) {
+        this.mContext = context;
+        this.myNodeId = userId;
         wiFiP2PInstance = WiFiP2PInstance.getInstance(context);
         wiFiP2PInstance.setPeerConnectedListener(this);
+        broadcastReceiver = wiFiP2PInstance.getBroadcastReceiver();
+        registerBroadcastReceiver();
     }
+
+    private void registerBroadcastReceiver(){
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(WIFI_P2P_STATE_CHANGED_ACTION);
+        intentFilter.addAction(WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        intentFilter.addAction(WIFI_P2P_PEERS_CHANGED_ACTION);
+        mContext.registerReceiver(broadcastReceiver, intentFilter);
+    }
+
 
     public void registerService() {
         removeAndCreateGroup();
@@ -79,23 +97,13 @@ public class WiFiDirectService implements ConnectionInfoListener {
 
     private void removeAndCreateGroup() {
         wiFiP2PInstance.getWifiP2pManager().requestGroupInfo(wiFiP2PInstance.getChannel(), new WifiP2pManager.GroupInfoListener() {
-
             @Override
             public void onGroupInfoAvailable(final WifiP2pGroup group) {
                 if (group != null) {
                     wiFiP2PInstance.getWifiP2pManager().removeGroup(wiFiP2PInstance.getChannel(), new WifiP2pManager.ActionListener() {
                         @Override
                         public void onSuccess() {
-                            Log.d(TAG, "Group deleted");
-                            Log.d(TAG, "\tNetwordk Name: " + group.getNetworkName());
-                            Log.d(TAG, "\tInterface: " + group.getInterface());
-                            Log.d(TAG, "\tPassword: " + group.getPassphrase());
-                            Log.d(TAG, "\tOwner Name: " + group.getOwner().deviceName);
-                            Log.d(TAG, "\tOwner Address: " + group.getOwner().deviceAddress);
-                            Log.d(TAG, "\tClient list size: " + group.getClientList().size());
-
                             groupAlreadyCreated = false;
-
                             // Now we can create the group
                             createGroup();
                         }
@@ -172,7 +180,7 @@ public class WiFiDirectService implements ConnectionInfoListener {
 
         Log.e(TAG, "Advertise local service triggered........");
 
-        WifiP2pDnsSdServiceInfo serviceInfo = WifiP2pDnsSdServiceInfo.newInstance("small", SERVICE_TYPE, record);
+        WifiP2pDnsSdServiceInfo serviceInfo = WifiP2pDnsSdServiceInfo.newInstance("mesh", SERVICE_TYPE, record);
         wiFiP2PInstance.getWifiP2pManager().addLocalService(wiFiP2PInstance.getChannel(), serviceInfo, new WifiP2pManager.ActionListener() {
 
             @Override
@@ -249,7 +257,6 @@ public class WiFiDirectService implements ConnectionInfoListener {
             public void onFailure(int reason) {
                 Log.e(TAG, "Error stopping peer discovering: " + WiFiP2PError.fromReason(reason));
             }
-
         });
     }
 

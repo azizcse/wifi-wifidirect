@@ -35,10 +35,31 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
         wiFiP2PInstance.setServerDisconnectedListener(this);
     }
 
-
-
     public void initializeServicesDiscovery() {
         // We need to start discovering peers to activate the service search
+        wiFiP2PInstance.startPeerDiscovering();
+        setupDnsListeners();
+        triggeredGoDiscovery();
+    }
+
+    public void stopServiceDiscovery(){
+        dnsSdTxtRecordListener = null;
+        dnsSdServiceResponseListener = null;
+        wiFiP2PInstance.getWifiP2pManager().setDnsSdResponseListeners(wiFiP2PInstance.getChannel(),
+                null, null);
+
+        wiFiP2PInstance.getWifiP2pManager().clearServiceRequests(wiFiP2PInstance.getChannel(), new WifiP2pManager.ActionListener() {
+            public void onSuccess() {
+                Log.e("P2p_seach","Stop p2p search success");
+            }
+
+            public void onFailure(int reason) {
+                Log.e("P2p_seach","Stop p2p search success");
+            }
+        });
+    }
+
+    public void searchGO(){
         wiFiP2PInstance.startPeerDiscovering();
         setupDnsListeners();
         triggeredGoDiscovery();
@@ -122,7 +143,6 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
 
 
 
-
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
 
@@ -133,17 +153,5 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
 
     }
 
-    public void stopServiceDiscovery(){
-
-        wiFiP2PInstance.getWifiP2pManager().clearServiceRequests(wiFiP2PInstance.getChannel(), new WifiP2pManager.ActionListener() {
-            public void onSuccess() {
-                Log.e("P2p_seach","Stop p2p search success");
-            }
-
-            public void onFailure(int reason) {
-                Log.e("P2p_seach","Stop p2p search success");
-            }
-        });
-    }
 
 }

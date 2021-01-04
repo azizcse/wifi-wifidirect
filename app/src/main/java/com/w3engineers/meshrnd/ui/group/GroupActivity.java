@@ -73,25 +73,25 @@ public class GroupActivity extends AppCompatActivity implements GroupCreationDia
 
     private void checkPermission(){
         if(PermissionUtil.init(this).request(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)){
-            registerBroadcastReceiver();
+           // registerBroadcastReceiver();
 
             controller.createGo();
         }
     }
 
-    private void registerBroadcastReceiver(){
+   /* private void registerBroadcastReceiver(){
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WIFI_P2P_STATE_CHANGED_ACTION);
         intentFilter.addAction(WIFI_P2P_CONNECTION_CHANGED_ACTION);
         intentFilter.addAction(WIFI_P2P_PEERS_CHANGED_ACTION);
         registerReceiver(wiFiDirectBroadcastReceiver, intentFilter);
-    }
+    }*/
 
     @Override
     protected void onResume() {
         super.onResume();
         if(PermissionUtil.init(this).isAllowed(Manifest.permission.ACCESS_FINE_LOCATION)){
-            registerBroadcastReceiver();
+           // registerBroadcastReceiver();
         }
 
         Log.i("WiFiDirectService", "btoadcast receiver registeded");

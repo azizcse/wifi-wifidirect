@@ -46,8 +46,8 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                             Log.d("WiFiDirectService", "Peers detected:");
 
                             for (WifiP2pDevice device : peers.getDeviceList()) {
-                                Log.d("WiFiDirectService", "\tDevice Name: " + device.deviceName);
-                                Log.d("WiFiDirectService", "\tDevice Address: " + device.deviceAddress);
+                                //Log.d("WiFiDirectService", "\tDevice Name: " + device.deviceName);
+                                //Log.d("WiFiDirectService", "\tDevice Address: " + device.deviceAddress);
                             }
                         } else {
                             Log.d("WiFiDirectService", "No peers detected");
