@@ -2,6 +2,7 @@ package com.w3engineers.meshrnd.ui.main;
 
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
+import android.graphics.Bitmap;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
@@ -27,8 +28,15 @@ import com.w3engineers.meshrnd.wifi.WiFiScanCallBack;
 import com.w3engineers.meshrnd.wifi.WifiScanManager;
 import com.w3engineers.meshrnd.wifidirect.WifiDirectManager;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import id.zelory.compressor.Compressor;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.functions.Consumer;
+import io.reactivex.schedulers.Schedulers;
+
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, WiFiScanCallBack, ItemClickListener<UserModel> {
 
@@ -58,7 +66,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         wifiDirectManager.initListener(this);
 
         mBinding.textTitle.setText(SharedPref.read(Constants.NAME)+"'s address");
-
     }
 
     @Override

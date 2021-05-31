@@ -64,7 +64,17 @@ public class GroupDevice {
 
     @Override
     public String toString() {
-        return new StringBuilder().append("GroupDevice[deviceName=").append(deviceName).append("][deviceMac=").append(deviceMac).append("][deviceServerSocketIP=").append(deviceServerSocketIP).append("][deviceServerSocketPort=").append(deviceServerSocketPort).append("]").toString();
+        return new StringBuilder()
+                .append("GroupDevice[deviceName=")
+                .append(deviceName)
+                .append("][deviceMac=")
+                .append(deviceMac)
+                .append("][deviceServerSocketIP=")
+                .append(deviceServerSocketIP)
+                .append("][deviceServerSocketPort=")
+                .append(deviceServerSocketPort)
+                .append("]")
+                .toString();
     }
 
     @Override

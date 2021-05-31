@@ -19,20 +19,24 @@ import com.w3.meshlib.common.WiFiP2PError;
 import com.w3.meshlib.common.WiFiP2PInstance;
 import com.w3.meshlib.common.listeners.ConnectionInfoListener;
 import com.w3.meshlib.common.listeners.ServiceDisconnectedListener;
+import com.w3.meshlib.util.WifiConnector;
+
 import java.util.Map;
 
 
 public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconnectedListener {
 
-    private static final String TAG = WiFiDirectClient.class.getSimpleName();
+    private static final String TAG = "WificonnectionTest";
     private DnsSdTxtRecordListener dnsSdTxtRecordListener;
     private DnsSdServiceResponseListener dnsSdServiceResponseListener;
 
     private WiFiP2PInstance wiFiP2PInstance;
+    private WifiConnector wifiConnector;
 
-    public WiFiDirectClient(Context context) {
+    public WiFiDirectClient(Context context, WifiConnector wifiConnector) {
         wiFiP2PInstance = WiFiP2PInstance.getInstance(context);
         wiFiP2PInstance.setServerDisconnectedListener(this);
+        this.wifiConnector = wifiConnector;
     }
 
     public void initializeServicesDiscovery() {
@@ -42,7 +46,7 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
         triggeredGoDiscovery();
     }
 
-    public void stopServiceDiscovery(){
+    public void stopServiceDiscovery() {
         dnsSdTxtRecordListener = null;
         dnsSdServiceResponseListener = null;
         wiFiP2PInstance.getWifiP2pManager().setDnsSdResponseListeners(wiFiP2PInstance.getChannel(),
@@ -50,23 +54,24 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
 
         wiFiP2PInstance.getWifiP2pManager().clearServiceRequests(wiFiP2PInstance.getChannel(), new WifiP2pManager.ActionListener() {
             public void onSuccess() {
-                Log.e("P2p_seach","Stop p2p search success");
+                Log.e("P2p_seach", "Stop p2p search success");
             }
 
             public void onFailure(int reason) {
-                Log.e("P2p_seach","Stop p2p search success");
+                Log.e("P2p_seach", "Stop p2p search success");
             }
         });
     }
 
-    public void searchGO(){
+    public void searchGO() {
         wiFiP2PInstance.startPeerDiscovering();
         setupDnsListeners();
         triggeredGoDiscovery();
     }
 
 
-    private void triggeredGoDiscovery(){
+    private void triggeredGoDiscovery() {
+        isFound = false;
         wiFiP2PInstance.getWifiP2pManager().clearServiceRequests(wiFiP2PInstance.getChannel(), new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -81,6 +86,7 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
                             public void onSuccess() {
                                 Log.e(TAG, "discoverServices success");
                             }
+
                             @Override
                             public void onFailure(int reason) {
                                 WiFiP2PError wiFiP2PError = WiFiP2PError.fromReason(reason);
@@ -92,11 +98,13 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
 
                         });
                     }
+
                     @Override
                     public void onFailure(int reason) {
                     }
                 });
             }
+
             @Override
             public void onFailure(int reason) {
                 Log.e(TAG, "Error clearing service request: " + reason);
@@ -115,16 +123,29 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
         }
     }
 
+    boolean isFound = false;
+
     private DnsSdTxtRecordListener getTxtRecordListener() {
         return new DnsSdTxtRecordListener() {
 
             @Override
-            public void onDnsSdTxtRecordAvailable(String fullDomainName, Map<String, String> txtRecordMap, WifiP2pDevice device) {
+            public void onDnsSdTxtRecordAvailable(String fullDomainName, Map<String, String> txtRecordMap, final WifiP2pDevice device) {
 
-                if (txtRecordMap.containsKey("pass")){
-                    Log.e(TAG, "Discovered ssid : "+txtRecordMap.toString());
+                if (txtRecordMap.containsKey("pa_ss") && !isFound) {
+                    Log.e(TAG, "Discovered ssid : " + txtRecordMap.toString());
+                    final String ssid = txtRecordMap.get("ss_id");
+                    final String pass = txtRecordMap.get("pa_ss");
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            wifiConnector.connect(ssid, pass, device.deviceAddress);
+                        }
+                    }).start();
+
+                    isFound = true;
+
                 } else {
-                    Log.e(TAG, "Discovered wifi service...... success domen: "+fullDomainName);
+                    Log.e(TAG, "Discovered wifi service...... success domen: " + fullDomainName);
                 }
             }
         };
@@ -134,13 +155,10 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
         return new DnsSdServiceResponseListener() {
             @Override
             public void onDnsSdServiceAvailable(String instanceName, String registrationType, WifiP2pDevice srcDevice) {
-                Log.e(TAG, "Discovered wifi service...... success name: "+instanceName+" Type: "+registrationType);
+                Log.e(TAG, "Discovered wifi service...... success name: " + instanceName + " Type: " + registrationType);
             }
         };
     }
-
-
-
 
 
     @Override

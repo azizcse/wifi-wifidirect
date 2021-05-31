@@ -35,9 +35,6 @@ public class GroupChatActivity extends AppCompatActivity implements
     private String groupName;
     private boolean isGroupOwner = false;
 
-    private WiFiDirectService wroupService;
-    private WiFiDirectClient wroupClient;
-
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

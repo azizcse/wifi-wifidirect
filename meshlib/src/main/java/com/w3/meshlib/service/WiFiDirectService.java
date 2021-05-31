@@ -62,7 +62,7 @@ import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION;
 public class WiFiDirectService implements ConnectionInfoListener {
 
 
-    private static final String TAG = WiFiDirectService.class.getSimpleName();
+    private static final String TAG = "WificonnectionTest";
 
     private static final String SERVICE_TYPE = "_wroup._tcp";
 
@@ -169,15 +169,8 @@ public class WiFiDirectService implements ConnectionInfoListener {
     private boolean startServiceBroadcasting(String ssId, String password) {
         Map<String, String> record = new HashMap<>();
         record.put("available", "visible");
-        record.put("ssid", ssId);
-        record.put("pass",password);
-        record.put("1","abcrlskfkgfekgelgklekflkgegklegklegklegk");
-        record.put("2","abcrlskfkgfekgelgklekflkgegklegklegklegk");
-        record.put("3","abcrlskfkgfekgelgklekflkgegklegklegklegk");
-        record.put("4","abcrlskfkgfekgelgklekflkgegklegklegklegk");
-        record.put("5","abcrlskfkgfekgelgklekflkgegklegklegklegk");
-        record.put("6","abcrlskfkgfekgelgklekflkgegklegklegklegk");
-
+        record.put("ss_id", ssId);
+        record.put("pa_ss",password);
         Log.e(TAG, "Advertise local service triggered........");
 
         WifiP2pDnsSdServiceInfo serviceInfo = WifiP2pDnsSdServiceInfo.newInstance("mesh", SERVICE_TYPE, record);

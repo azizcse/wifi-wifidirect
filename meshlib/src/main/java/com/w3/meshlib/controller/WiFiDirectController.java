@@ -4,6 +4,7 @@ import android.content.Context;
 
 import com.w3.meshlib.client.WiFiDirectClient;
 import com.w3.meshlib.service.WiFiDirectService;
+import com.w3.meshlib.util.WifiConnector;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,11 +18,13 @@ public class WiFiDirectController {
     private static WiFiDirectController wiFiDirectController;
     private WiFiDirectService wiFiDirectService;
     private WiFiDirectClient wiFiDirectClient;
+    private WifiConnector wifiConnector;
 
     private WiFiDirectController(Context context){
         this.mContext = context;
+        wifiConnector = new WifiConnector(context);
         wiFiDirectService = new WiFiDirectService(context,"");
-        wiFiDirectClient = new WiFiDirectClient(context);
+        wiFiDirectClient = new WiFiDirectClient(context, wifiConnector);
     }
 
     public static WiFiDirectController on(Context context){
