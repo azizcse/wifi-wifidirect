@@ -19,6 +19,8 @@ import com.w3.meshlib.common.WiFiP2PError;
 import com.w3.meshlib.common.WiFiP2PInstance;
 import com.w3.meshlib.common.listeners.ConnectionInfoListener;
 import com.w3.meshlib.common.listeners.ServiceDisconnectedListener;
+import com.w3.meshlib.util.GoFoundListener;
+import com.w3.meshlib.util.P2pDevice;
 import com.w3.meshlib.util.WifiConnector;
 
 import java.util.Map;
@@ -32,6 +34,7 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
 
     private WiFiP2PInstance wiFiP2PInstance;
     private WifiConnector wifiConnector;
+    private GoFoundListener goFoundListener;
 
     public WiFiDirectClient(Context context, WifiConnector wifiConnector) {
         wiFiP2PInstance = WiFiP2PInstance.getInstance(context);
@@ -131,21 +134,12 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
             @Override
             public void onDnsSdTxtRecordAvailable(String fullDomainName, Map<String, String> txtRecordMap, final WifiP2pDevice device) {
 
-                if (txtRecordMap.containsKey("pa_ss") && !isFound) {
+                if (txtRecordMap.containsKey("pa_ss") ) {
                     Log.e(TAG, "Discovered ssid : " + txtRecordMap.toString());
                     final String ssid = txtRecordMap.get("ss_id");
                     final String pass = txtRecordMap.get("pa_ss");
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            wifiConnector.connect(ssid, pass, device.deviceAddress);
-                        }
-                    }).start();
-
-                    isFound = true;
-
-                } else {
-                    Log.e(TAG, "Discovered wifi service...... success domen: " + fullDomainName);
+                    P2pDevice p2pDevice = new P2pDevice(ssid, pass, device.deviceAddress);
+                    goFoundListener.onGoFound(p2pDevice);
                 }
             }
         };
@@ -172,4 +166,7 @@ public class WiFiDirectClient implements ConnectionInfoListener, ServiceDisconne
     }
 
 
+    public void setListener(GoFoundListener listener) {
+        this.goFoundListener = listener;
+    }
 }

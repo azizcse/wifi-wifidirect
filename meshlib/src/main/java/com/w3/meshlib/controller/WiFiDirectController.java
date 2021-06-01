@@ -4,6 +4,7 @@ import android.content.Context;
 
 import com.w3.meshlib.client.WiFiDirectClient;
 import com.w3.meshlib.service.WiFiDirectService;
+import com.w3.meshlib.util.GoFoundListener;
 import com.w3.meshlib.util.WifiConnector;
 
 import java.util.Map;
@@ -67,4 +68,7 @@ public class WiFiDirectController {
     }
 
 
+    public void setListener(GoFoundListener listener) {
+        wiFiDirectClient.setListener(listener);
+    }
 }

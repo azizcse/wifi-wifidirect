@@ -1,31 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".ui.group.GroupChatActivity">
+<layout>
 
-    <LinearLayout
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
-        android:layout_marginLeft="40dp"
-        android:layout_marginRight="40dp"
-        android:orientation="vertical">
+        android:layout_height="match_parent"
+        tools:context=".ui.group.GroupChatActivity">
 
-        <Button
-            android:id="@+id/btnCreateGroup"
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_create_group"/>
-
-        <Button
-            android:id="@+id/btnJoinGroup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_join_group"/>
+            android:layout_height="match_parent"
+            android:layout_margin="@dimen/height_10"
+            android:padding="@dimen/elevation_10" />
 
     </LinearLayout>
-
-</LinearLayout>
+</layout>

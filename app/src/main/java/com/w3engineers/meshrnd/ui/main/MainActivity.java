@@ -32,10 +32,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import id.zelory.compressor.Compressor;
-import io.reactivex.annotations.NonNull;
-import io.reactivex.functions.Consumer;
-import io.reactivex.schedulers.Schedulers;
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, WiFiScanCallBack, ItemClickListener<UserModel> {
@@ -68,10 +64,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mBinding.textTitle.setText(SharedPref.read(Constants.NAME)+"'s address");
     }
 
-    @Override
-    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
-        super.onSaveInstanceState(outState, outPersistentState);
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
