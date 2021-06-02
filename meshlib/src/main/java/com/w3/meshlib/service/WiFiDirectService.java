@@ -8,6 +8,7 @@ import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.w3.meshlib.common.GroupDevice;
 import com.w3.meshlib.common.WiFiDirectBroadcastReceiver;
@@ -20,6 +21,7 @@ import com.w3.meshlib.common.listeners.DataReceivedListener;
 import com.w3.meshlib.common.listeners.ConnectionInfoListener;
 import com.w3.meshlib.common.listeners.ServiceRegisteredListener;
 import com.w3.meshlib.common.messages.MessageWrapper;
+import com.w3.meshlib.util.HandlerUtil;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -82,7 +84,7 @@ public class WiFiDirectService implements ConnectionInfoListener {
         registerBroadcastReceiver();
     }
 
-    private void registerBroadcastReceiver(){
+    private void registerBroadcastReceiver() {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WIFI_P2P_STATE_CHANGED_ACTION);
         intentFilter.addAction(WIFI_P2P_CONNECTION_CHANGED_ACTION);
@@ -129,11 +131,25 @@ public class WiFiDirectService implements ConnectionInfoListener {
                     Log.i(TAG, "Group created!");
                     groupAlreadyCreated = true;
                     //requestQroupInfoForAdvertising();
+
+                    HandlerUtil.postForeground(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(mContext, "GO Created", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 }
 
                 @Override
                 public void onFailure(int reason) {
                     Log.e(TAG, "Error creating group. Reason: " + WiFiP2PError.fromReason(reason));
+
+                    HandlerUtil.postForeground(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(mContext, "GO creation failed", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 }
             });
         }
@@ -151,7 +167,7 @@ public class WiFiDirectService implements ConnectionInfoListener {
     }
 
 
-    private void requestQroupInfoForAdvertising(){
+    private void requestQroupInfoForAdvertising() {
         wiFiP2PInstance.getWifiP2pManager().requestGroupInfo(wiFiP2PInstance.getChannel(), new WifiP2pManager.GroupInfoListener() {
             @Override
             public void onGroupInfoAvailable(WifiP2pGroup group) {
@@ -159,7 +175,7 @@ public class WiFiDirectService implements ConnectionInfoListener {
                     Log.e(TAG, "SSID name...... : " + group.getNetworkName());
                     Log.e(TAG, "Password........ : " + group.getPassphrase());
                     startServiceBroadcasting(group.getNetworkName(), group.getPassphrase());
-                }else {
+                } else {
                     Log.e(TAG, "No ssid name SSID null.......... : ");
                 }
             }
@@ -170,7 +186,7 @@ public class WiFiDirectService implements ConnectionInfoListener {
         Map<String, String> record = new HashMap<>();
         record.put("available", "visible");
         record.put("ss_id", ssId);
-        record.put("pa_ss",password);
+        record.put("pa_ss", password);
         Log.e(TAG, "Advertise local service triggered........");
 
         WifiP2pDnsSdServiceInfo serviceInfo = WifiP2pDnsSdServiceInfo.newInstance("mesh", SERVICE_TYPE, record);
@@ -196,7 +212,7 @@ public class WiFiDirectService implements ConnectionInfoListener {
         return false;
     }
 
-    public void stopGoAllEvent(){
+    public void stopGoAllEvent() {
         clearLocalServices();
         removeGroup();
         stopPeerDiscovering();
@@ -218,6 +234,7 @@ public class WiFiDirectService implements ConnectionInfoListener {
 
         });
     }
+
     private void removeGroup() {
         wiFiP2PInstance.getWifiP2pManager().requestGroupInfo(wiFiP2PInstance.getChannel(), new WifiP2pManager.GroupInfoListener() {
             @Override

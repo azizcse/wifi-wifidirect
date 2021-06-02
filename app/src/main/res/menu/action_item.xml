@@ -21,4 +21,10 @@
         app:showAsAction="never" >
     </item>
 
+    <item
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/init_multi_socket"
+        android:title="Multi Socket"
+        app:showAsAction="never" >
+    </item>
 </menu>

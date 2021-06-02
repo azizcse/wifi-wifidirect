@@ -12,7 +12,9 @@ import com.w3engineers.meshrnd.wifi.ScanListener;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 /*
@@ -57,7 +59,7 @@ public class UdpScanner {
         // my_ip = Utils.getDeviceIp();
         runner = true;
         try {
-            receiverSocket = new DatagramSocket(Common.UDP_IP_SCANNER_PORT, InetAddress.getByName(Common.INITIAL_IP));
+            receiverSocket = new DatagramSocket(Common.UDP_IP_SCANNER_PORT);
             receiverSocket.setBroadcast(true);
 
         } catch (Exception e) {
@@ -72,8 +74,10 @@ public class UdpScanner {
      */
     public void destroySocket() {
         runner = false;
-        if (receiverSocket != null)
+        if (receiverSocket != null) {
             receiverSocket.close();
+            Log.e(TAG, "UDP socket closed");
+        }
 
     }
 
@@ -82,6 +86,7 @@ public class UdpScanner {
      * Get new user ip address
      */
     public void udpServer(final String resString) {
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -95,24 +100,25 @@ public class UdpScanner {
 
                             String ip = packet.getAddress().toString().substring(1);
                             String serverMessage = new String(packet.getData(), 0, packet.getLength());
-                            AppLog.v("Udp server receive msg ="+serverMessage);
+                            AppLog.v("Udp server receive msg =" + serverMessage);
                             int type = JsonParser.getScanType(serverMessage);
 
                             if (Common.SCAN_REQ == type) {
-                                byte[] sendData = resString.getBytes();
+                               /* byte[] sendData = resString.getBytes();
                                 DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
                                         packet.getAddress(),Common.UDP_IP_SCANNER_PORT);
-                                receiverSocket.send(sendPacket);
+                                receiverSocket.send(sendPacket);*/
                             }
 
-                            scanListener.join(serverMessage, ip);
+                            //scanListener.join(serverMessage, ip);
                         }
                     } catch (SocketTimeoutException e) {
                         AppLog.v("Receive timed out");
                     }
                 } catch (Exception e) {
-
+                    e.printStackTrace();
                 } finally {
+                    Log.e(TAG, "UDP socket closing");
                     destroySocket();
                 }
             }
@@ -129,10 +135,16 @@ public class UdpScanner {
             @Override
             public void run() {
                 try {
-                    byte[] buf = reqString.getBytes();                    ;
+                    byte[] buf = reqString.getBytes();
+
 
                     DatagramPacket packet = new DatagramPacket(buf, buf.length,
                             InetAddress.getByName(ip), Common.UDP_IP_SCANNER_PORT);
+
+                    if (receiverSocket == null) {
+                        receiverSocket = new DatagramSocket();
+                    }
+
                     receiverSocket.send(packet);
 
                 } catch (Exception e) {

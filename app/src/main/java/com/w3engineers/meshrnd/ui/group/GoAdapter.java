@@ -26,7 +26,7 @@ public class GoAdapter extends BaseAdapter<P2pDevice> {
         return new UserViewHolder(inflate(parent, R.layout.item_discovered_user));
     }
 
-    public class UserViewHolder extends BaseViewHolder<P2pDevice>{
+    public class UserViewHolder extends BaseViewHolder<P2pDevice> {
 
         public UserViewHolder(ViewDataBinding viewDataBinding) {
             super(viewDataBinding);
@@ -35,7 +35,10 @@ public class GoAdapter extends BaseAdapter<P2pDevice> {
         @Override
         public void bind(P2pDevice item, ViewDataBinding viewDataBinding) {
             ItemDiscoveredUserBinding binding = (ItemDiscoveredUserBinding) viewDataBinding;
-            binding.userCard.setOnClickListener(this);
+
+            setClickListener(binding.userCard, binding.buttonConnectConnectGo, binding.buttonJoinGo);
+            //binding.userCard.setOnClickListener(this);
+
             binding.userName.setText(item.getSsid());
             binding.textViewTime.setText(item.getMac());
         }

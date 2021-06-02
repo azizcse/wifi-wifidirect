@@ -19,10 +19,13 @@ import com.w3engineers.meshrnd.util.Common;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -79,6 +82,23 @@ public class MessageSender {
                             e.printStackTrace();
                         }
                     }
+                }
+            }
+        });
+    }
+
+    public void sendMessageToServer(final String message, final String ipAddress) {
+        singleThreadExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    InetAddress addr = InetAddress.getByName(ipAddress);
+                    DatagramSocket serverSocket = new DatagramSocket();
+                    DatagramPacket msgPacket = new DatagramPacket(message.getBytes(),
+                            message.getBytes().length, addr, Common.MESSAGING_PORT);
+                    serverSocket.send(msgPacket);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         });

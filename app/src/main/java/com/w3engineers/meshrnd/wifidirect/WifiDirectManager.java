@@ -22,6 +22,7 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.HandlerThread;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.w3engineers.meshrnd.model.Message;
@@ -122,7 +123,10 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
             wiFiScanCallBack.updateDeviceAddress();
         }
 
+        Log.i("P2pClient", "onConnectionInfoAvailable called");
+
         if (wifiP2pInfo.groupFormed && !wifiP2pInfo.isGroupOwner) {
+            Log.i("P2pClient", "I am p2p client. Send message to GO");
             String sendAbleString = JsonParser.getReqString();
             String groupOwnerAddress = wifiP2pInfo.groupOwnerAddress.getHostAddress();
             messageSender.sendMessage(sendAbleString, groupOwnerAddress);
@@ -135,22 +139,25 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
     @Override
     public void onPeersAvailable(WifiP2pDeviceList peerList) {
         //AppLog.v("onPeersAvailable() called =" + peerList.getDeviceList().size());
-        wiFiScanCallBack.onScanFinish();
 
-        List<WifiP2pDevice> devices = (new ArrayList<>());
-        devices.addAll(peerList.getDeviceList());
-        for (WifiP2pDevice device : devices) {
-            UserModel deviceDTO = new UserModel();
-            deviceDTO.setIp(device.deviceAddress);
-            deviceDTO.setUserName(device.deviceName);
-            deviceDTO.setDeviceName(new String());
-            deviceDTO.setOsVersion(new String());
-            deviceDTO.setGroupOwner(device.isGroupOwner());
-            deviceDTO.setPort(-1);
-            discoveredUserList.add(deviceDTO);
-            wiFiScanCallBack.onUserFound(deviceDTO);
+        if (wiFiScanCallBack != null) {
+            wiFiScanCallBack.onScanFinish();
 
-            AppLog.v("Group_check","Peer details =" + device.isGroupOwner());
+            List<WifiP2pDevice> devices = (new ArrayList<>());
+            devices.addAll(peerList.getDeviceList());
+            for (WifiP2pDevice device : devices) {
+                UserModel deviceDTO = new UserModel();
+                deviceDTO.setIp(device.deviceAddress);
+                deviceDTO.setUserName(device.deviceName);
+                deviceDTO.setDeviceName(new String());
+                deviceDTO.setOsVersion(new String());
+                deviceDTO.setGroupOwner(device.isGroupOwner());
+                deviceDTO.setPort(-1);
+                discoveredUserList.add(deviceDTO);
+                wiFiScanCallBack.onUserFound(deviceDTO);
+
+                AppLog.v("Group_check", "Peer details =" + device.isGroupOwner());
+            }
         }
 
     }
@@ -226,7 +233,7 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
 
             @Override
             public void onFailure(int reasonCode) {
-                AppLog.v("createConnection onFailure() ="+reasonCode);
+                AppLog.v("createConnection onFailure() =" + reasonCode);
             }
         });
     }
@@ -235,7 +242,9 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
     public void onUserFound(UserModel userModel) {
         realUsersDataList.add(userModel);
         if (userModel != null) {
-            wiFiScanCallBack.onUserFound(userModel);
+            if (wiFiScanCallBack != null) {
+                wiFiScanCallBack.onUserFound(userModel);
+            }
         }
     }
 
@@ -250,7 +259,10 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
                     break;
                 }
             }
-            wiFiScanCallBack.onUserFound(userModels);
+
+            if (wiFiScanCallBack != null) {
+                wiFiScanCallBack.onUserFound(userModels);
+            }
         }
     }
 
@@ -266,6 +278,18 @@ public class WifiDirectManager implements WifiP2pManager.PeerListListener,
         AppLog.v("Send response info ---- ");
         String sendValue = JsonParser.buildMessage(inputValue);
         messageSender.sendMessage(sendValue, ip);
+    }
+
+    public void sendTextMessage(String ip, Message inputValue, boolean isP2p) {
+        AppLog.v("Send response info ---- ");
+        String sendValue = JsonParser.buildMessage(inputValue);
+
+        messageSender.sendMessage(sendValue, ip);
+       /* if (isP2p) {
+            messageSender.sendMessage(sendValue, ip);
+        } else {
+            messageSender.sendMessageToServer(sendValue, ip);
+        }*/
     }
 
     @Override

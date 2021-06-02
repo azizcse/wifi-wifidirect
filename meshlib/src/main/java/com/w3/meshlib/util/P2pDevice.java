@@ -8,6 +8,8 @@ public class P2pDevice {
     private String password;
     private String mac;
 
+    public boolean isP2p;
+
     public P2pDevice(String ssid, String password, String mac) {
         this.ssid = ssid;
         this.password = password;
