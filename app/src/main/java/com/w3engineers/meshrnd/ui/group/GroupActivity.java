@@ -187,7 +187,7 @@ public class GroupActivity extends AppCompatActivity implements GroupCreationDia
                 wifiDirectManager.sendTextMessage("192.168.49.1", message, item.isP2p);
             } else {
                 sendUdpMessage("192.168.49.255", message);
-                sendUdpMessage("192.168.49.1", message);
+                //sendUdpMessage("192.168.49.1", message);
             }
 
            /* if (item.isP2p) {
