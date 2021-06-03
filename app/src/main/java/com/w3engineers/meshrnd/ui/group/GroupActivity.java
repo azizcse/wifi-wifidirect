@@ -168,7 +168,9 @@ public class GroupActivity extends AppCompatActivity implements GroupCreationDia
         int id = view.getId();
         if (id == R.id.button_join_go) {
             joinAGroup(item);
+            item.isP2p = true;
         } else if (id == R.id.button_connect_connect_go) {
+            item.isP2p = false;
             connectWithGoAsLc(item);
 
         } else if (id == R.id.user_card) {
@@ -177,15 +179,26 @@ public class GroupActivity extends AppCompatActivity implements GroupCreationDia
             message.message = "hello";
             message.messageId = UUID.randomUUID().toString();
 
-           /* if (item.isP2p) {
-                sendUdpMessage("192.168.49.1", message);
-            } else {
 
+            //sendUdpMessage("192.168.49.255", message);
+            //sendUdpMessage("192.168.49.1", message);
+
+            if (item.isP2p) {
                 wifiDirectManager.sendTextMessage("192.168.49.1", message, item.isP2p);
+            } else {
+                sendUdpMessage("192.168.49.255", message);
+                sendUdpMessage("192.168.49.1", message);
+            }
+
+           /* if (item.isP2p) {
+                wifiDirectManager.sendTextMessage("192.168.49.1", message, item.isP2p);
+
+            } else {
+                sendUdpMessage("192.168.49.255", message);
             }*/
 
             //sendUdpMessage("192.168.49.1", message);
-            wifiDirectManager.sendTextMessage("192.168.49.1", message, item.isP2p);
+            //wifiDirectManager.sendTextMessage("192.168.49.1", message, item.isP2p);
         }
     }
 
@@ -252,12 +265,14 @@ public class GroupActivity extends AppCompatActivity implements GroupCreationDia
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (device.getSsid().contains("10")) {
-                    device.isP2p = false;
-                } else {
-                    device.isP2p = true;
+                if (device != null) {
+                  /*  if (device.getSsid().contains("10")) {
+                        device.isP2p = false;
+                    } else {
+                        device.isP2p = true;
+                    }*/
+                    goAdapter.addItem(device);
                 }
-                goAdapter.addItem(device);
             }
         });
 
@@ -272,6 +287,8 @@ public class GroupActivity extends AppCompatActivity implements GroupCreationDia
     private void initMultiSocket() {
         udpScanner.startSocket();
         udpScanner.udpServer("");
+
+        //udpScanner.UDPMultiCastSocket();
     }
 
 }

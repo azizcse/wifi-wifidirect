@@ -41,7 +41,7 @@ public class WiFiDirectController {
     }
 
     public void searchGo(){
-        stopGo();
+        //stopGo();
         wiFiDirectClient.initializeServicesDiscovery();
     }
 

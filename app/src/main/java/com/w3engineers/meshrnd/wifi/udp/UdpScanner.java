@@ -9,9 +9,11 @@ import com.w3engineers.meshrnd.util.HandlerUtil;
 import com.w3engineers.meshrnd.util.JsonParser;
 import com.w3engineers.meshrnd.wifi.ScanListener;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
@@ -59,6 +61,7 @@ public class UdpScanner {
         // my_ip = Utils.getDeviceIp();
         runner = true;
         try {
+            // InetAddress address = InetAddress.getByName("192.168.49.1");
             receiverSocket = new DatagramSocket(Common.UDP_IP_SCANNER_PORT);
             receiverSocket.setBroadcast(true);
 
@@ -120,6 +123,42 @@ public class UdpScanner {
                 } finally {
                     Log.e(TAG, "UDP socket closing");
                     destroySocket();
+                }
+            }
+        }).start();
+
+    }
+
+    public void UDPMultiCastSocket() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+
+                    InetAddress address = InetAddress.getByName("228.5.6.7");
+
+                    // Create a buffer of bytes, which will be used to store
+                    // the incoming bytes containing the information from the server.
+                    // Since the message is small here, 256 bytes should be enough.
+                    byte[] buf = new byte[256];
+
+                    // Create a new Multicast socket (that will allow other sockets/programs
+                    // to join it as well.
+                    MulticastSocket clientSocket = new MulticastSocket(Common.UDP_IP_SCANNER_PORT);
+
+                    //Joint the Multicast group.
+                    clientSocket.joinGroup(address);
+
+                    while (true) {
+                        // Receive the information and print it.
+                        DatagramPacket msgPacket = new DatagramPacket(buf, buf.length);
+                        clientSocket.receive(msgPacket);
+
+                        String msg = new String(buf, 0, buf.length);
+                        System.out.println("Socket 1 received msg: " + msg);
+                    }
+                } catch (IOException ex) {
+                    ex.printStackTrace();
                 }
             }
         }).start();
